@@ -58,6 +58,20 @@ class TenantController extends Controller
         ], 201);
     }
 
+    /**
+     * Resolve a tenant by subdomain (public).
+     */
+    public function resolve(string $subdomain): JsonResponse
+    {
+        $tenant = Tenant::where('subdomain', $subdomain)->first();
+
+        if (! $tenant) {
+            return response()->json(['message' => 'Tenant not found.'], 404);
+        }
+
+        return response()->json($tenant);
+    }
+
     public function show(Request $request): JsonResponse
     {
         $tenant = $request->user()->tenant;

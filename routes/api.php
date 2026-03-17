@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Public tenant resolve
+Route::get('/tenants/resolve/{subdomain}', [TenantController::class, 'resolve']);
+
 // Protected routes (require Sanctum token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
