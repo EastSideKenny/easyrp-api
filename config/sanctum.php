@@ -2,6 +2,12 @@
 
 use Laravel\Sanctum\Sanctum;
 
+$frontendUrl = env('FRONTEND_URL');
+$frontendParsed = $frontendUrl ? parse_url($frontendUrl) : [];
+$frontendDomain = ! empty($frontendParsed['host'])
+    ? $frontendParsed['host'].(! empty($frontendParsed['port']) ? ':'.$frontendParsed['port'] : '')
+    : '';
+
 return [
 
     /*
@@ -16,10 +22,10 @@ return [
     */
 
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
+        '%s%s%s',
         'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+        $frontendDomain ? ','.$frontendDomain : '',
         Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
     ))),
 
     /*

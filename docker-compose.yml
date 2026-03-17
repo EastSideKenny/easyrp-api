@@ -6,6 +6,8 @@ services:
     container_name: easyrp_app
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     volumes:
       - .:/var/www
     depends_on:
