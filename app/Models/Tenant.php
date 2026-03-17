@@ -8,9 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['name', 'slug', 'subdomain', 'plan_id', 'is_active'])]
+#[Fillable(['name', 'slug', 'subdomain', 'industry', 'team_size', 'modules', 'plan_id', 'is_active'])]
 class Tenant extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'modules' => 'array',
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
@@ -77,7 +85,7 @@ class Tenant extends Model
             ->whereIn('status', ['active', 'trialing'])
             ->with('plan.features')
             ->get()
-            ->flatMap(fn ($sub) => $sub->plan->features ?? collect())
+            ->flatMap(fn($sub) => $sub->plan->features ?? collect())
             ->contains('code', $featureCode);
     }
 }

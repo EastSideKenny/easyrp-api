@@ -23,6 +23,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::create($validated);
+        $user->load('tenant');
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -51,6 +52,7 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
+        $user->load('tenant');
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
