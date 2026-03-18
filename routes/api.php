@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/{payment}', [PaymentController::class, 'show']);
     Route::post('/payments', [PaymentController::class, 'store']);
+    Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
 
     // Stock Movements
     Route::get('/stock-movements', [StockMovementController::class, 'index']);

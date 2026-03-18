@@ -25,7 +25,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load('items', 'customer');
+        $order->load('items', 'customer', 'invoices.payments');
 
         return response()->json($order);
     }
@@ -36,7 +36,7 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'status' => ['sometimes', 'in:pending,paid,canceled'],
+            'status' => ['sometimes', 'in:pending,paid,done,canceled'],
             'currency' => ['sometimes', 'string', 'size:3'],
             'payment_status' => ['sometimes', 'in:pending,paid,failed'],
             'items' => ['required', 'array', 'min:1'],
@@ -96,7 +96,7 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'status' => ['sometimes', 'in:pending,paid,canceled'],
+            'status' => ['sometimes', 'in:pending,paid,done,canceled'],
             'subtotal' => ['sometimes', 'numeric', 'min:0'],
             'tax_total' => ['sometimes', 'numeric', 'min:0'],
             'total' => ['sometimes', 'numeric', 'min:0'],

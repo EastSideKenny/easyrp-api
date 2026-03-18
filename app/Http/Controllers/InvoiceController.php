@@ -16,7 +16,7 @@ class InvoiceController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(Invoice::where('tenant_id', $tenant->id)->get());
+        return response()->json(Invoice::where('tenant_id', $tenant->id)->with('customer:id,name')->get());
     }
 
     public function show(Request $request, Invoice $invoice): JsonResponse
@@ -36,9 +36,11 @@ class InvoiceController extends Controller
     {
         $tenant = $request->user()->tenant;
 
+        $tenantId = $tenant->id;
+
         $validated = $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
-            'order_id' => ['nullable', 'exists:orders,id'],
+            'customer_id' => ['nullable', "exists:customers,id,tenant_id,{$tenantId}"],
+            'order_id' => ['nullable', "exists:orders,id,tenant_id,{$tenantId}"],
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
@@ -93,9 +95,11 @@ class InvoiceController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
+        $tenantId = $tenant->id;
+
         $validated = $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
-            'order_id' => ['nullable', 'exists:orders,id'],
+            'customer_id' => ['nullable', "exists:customers,id,tenant_id,{$tenantId}"],
+            'order_id' => ['nullable', "exists:orders,id,tenant_id,{$tenantId}"],
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],

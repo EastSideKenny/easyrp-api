@@ -28,7 +28,7 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        return response()->json($payment->load('invoice:id,invoice_number,customer_id', 'invoice.customer:id,name'));
+        return response()->json($payment->load('invoice:id,invoice_number,customer_id,total,due_date', 'invoice.customer:id,name'));
     }
 
     public function store(Request $request): JsonResponse
@@ -62,5 +62,18 @@ class PaymentController extends Controller
         }
 
         return response()->json($payment->load('invoice:id,invoice_number,customer_id', 'invoice.customer:id,name'), 201);
+    }
+
+    public function destroy(Request $request, Payment $payment): JsonResponse
+    {
+        $tenant = $request->user()->tenant;
+
+        if ($payment->tenant_id !== $tenant->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        $payment->delete();
+
+        return response()->json(null, 204);
     }
 }
