@@ -12,7 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'trial.active' => \App\Http\Middleware\EnsureTrialNotExpired::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

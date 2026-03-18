@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\TenantSubscription;
+use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SubscriptionController extends Controller
 {
+    public function __construct(private readonly PlanLimitService $limits) {}
+
     public function index(Request $request): JsonResponse
     {
         $tenant = $request->user()->tenant;
@@ -17,10 +20,17 @@ class SubscriptionController extends Controller
         }
 
         $subscriptions = TenantSubscription::where('tenant_id', $tenant->id)
-            ->with('plan')
+            ->with('plan.features')
             ->get();
 
-        return response()->json($subscriptions);
+        $activeSubscription = $subscriptions->first(fn($sub) => $sub->hasActiveAccess());
+
+        return response()->json([
+            'subscriptions' => $subscriptions,
+            'usage'         => $this->limits->getUsageSnapshot($tenant),
+            'trial_ends_at' => $activeSubscription?->trial_ends_at?->toIso8601String(),
+            'status'        => $activeSubscription?->status ?? 'expired',
+        ]);
     }
 
     public function show(Request $request, TenantSubscription $subscription): JsonResponse
@@ -31,8 +41,12 @@ class SubscriptionController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $subscription->load('plan');
+        $subscription->load('plan.features');
 
-        return response()->json($subscription);
+        return response()->json([
+            'subscription' => $subscription,
+            'usage'        => $this->limits->getUsageSnapshot($tenant),
+        ]);
     }
 }
+

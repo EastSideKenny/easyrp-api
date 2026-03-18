@@ -82,9 +82,8 @@ class Tenant extends Model
     public function hasFeature(string $featureCode): bool
     {
         return $this->subscriptions()
-            ->whereIn('status', ['active', 'trialing'])
-            ->with('plan.features')
             ->get()
+            ->filter(fn($sub) => $sub->hasActiveAccess())
             ->flatMap(fn($sub) => $sub->plan->features ?? collect())
             ->contains('code', $featureCode);
     }

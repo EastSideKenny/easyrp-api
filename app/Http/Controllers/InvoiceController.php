@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\StockMovement;
+use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,9 +33,19 @@ class InvoiceController extends Controller
         return response()->json($invoice);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, PlanLimitService $limits): JsonResponse
     {
         $tenant = $request->user()->tenant;
+
+        if ($limits->isAtLimit($tenant, 'invoices')) {
+            return response()->json([
+                'message'  => 'You have reached the invoice limit for your plan. Please upgrade to add more.',
+                'error'    => 'limit_reached',
+                'resource' => 'invoices',
+                'limit'    => $limits->getLimit($tenant, 'invoices'),
+                'used'     => $limits->getUsage($tenant, 'invoices'),
+            ], 403);
+        }
 
         $tenantId = $tenant->id;
 

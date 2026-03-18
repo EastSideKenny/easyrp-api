@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,9 +27,19 @@ class CustomerController extends Controller
         return response()->json($customer);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, PlanLimitService $limits): JsonResponse
     {
         $tenant = $request->user()->tenant;
+
+        if ($limits->isAtLimit($tenant, 'customers')) {
+            return response()->json([
+                'message'  => 'You have reached the customer limit for your plan. Please upgrade to add more.',
+                'error'    => 'limit_reached',
+                'resource' => 'customers',
+                'limit'    => $limits->getLimit($tenant, 'customers'),
+                'used'     => $limits->getUsage($tenant, 'customers'),
+            ], 403);
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

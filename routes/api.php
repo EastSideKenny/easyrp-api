@@ -60,41 +60,44 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/subscriptions', [SubscriptionController::class, 'index']);
     Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
 
-    // Products
-    Route::apiResource('products', ProductController::class);
+    // All routes below require an active subscription / non-expired trial
+    Route::middleware('trial.active')->group(function () {
+        // Products
+        Route::apiResource('products', ProductController::class);
 
-    // Product Categories
-    Route::apiResource('product-categories', ProductCategoryController::class);
+        // Product Categories
+        Route::apiResource('product-categories', ProductCategoryController::class);
 
-    // Customers
-    Route::apiResource('customers', CustomerController::class);
+        // Customers
+        Route::apiResource('customers', CustomerController::class);
 
-    // Invoices
-    Route::apiResource('invoices', InvoiceController::class);
-    Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
+        // Invoices
+        Route::apiResource('invoices', InvoiceController::class);
+        Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
 
-    // Payments
-    Route::get('/payments', [PaymentController::class, 'index']);
-    Route::get('/payments/{payment}', [PaymentController::class, 'show']);
-    Route::post('/payments', [PaymentController::class, 'store']);
-    Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
+        // Payments
+        Route::get('/payments', [PaymentController::class, 'index']);
+        Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+        Route::post('/payments', [PaymentController::class, 'store']);
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
 
-    // Stock Movements
-    Route::get('/stock-movements', [StockMovementController::class, 'index']);
-    Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
-    Route::post('/stock-movements', [StockMovementController::class, 'store']);
+        // Stock Movements
+        Route::get('/stock-movements', [StockMovementController::class, 'index']);
+        Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
+        Route::post('/stock-movements', [StockMovementController::class, 'store']);
 
-    // Inventory
-    Route::get('/inventory', [InventoryController::class, 'index']);
+        // Inventory
+        Route::get('/inventory', [InventoryController::class, 'index']);
 
-    // Orders
-    Route::apiResource('orders', OrderController::class);
+        // Orders
+        Route::apiResource('orders', OrderController::class);
 
-    // Webshop Settings
-    Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
-    Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
+        // Webshop Settings
+        Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
+        Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
 
-    // Setup Progress
-    Route::get('/setup-progress', [SetupProgressController::class, 'index']);
-    Route::patch('/setup-progress/{step}', [SetupProgressController::class, 'update']);
+        // Setup Progress
+        Route::get('/setup-progress', [SetupProgressController::class, 'index']);
+        Route::patch('/setup-progress/{step}', [SetupProgressController::class, 'update']);
+    });
 });

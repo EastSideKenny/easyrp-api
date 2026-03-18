@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\TenantSubscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -35,25 +37,36 @@ class TenantController extends Controller
         // Generate a unique subdomain from the business name
         $subdomain = $this->generateUniqueSubdomain($validated['name']);
 
+        $freePlan = Plan::where('slug', 'free_trial')->where('is_active', true)->firstOrFail();
+
         $tenant = Tenant::create([
-            'name' => $validated['name'],
-            'slug' => $subdomain,
+            'name'      => $validated['name'],
+            'slug'      => $subdomain,
             'subdomain' => $subdomain,
-            'industry' => $validated['industry'] ?? null,
+            'industry'  => $validated['industry'] ?? null,
             'team_size' => $validated['team_size'] ?? null,
-            'modules' => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products'],
+            'modules'   => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products'],
+            'plan_id'   => $freePlan->id,
+        ]);
+
+        // Create a 14-day free trial subscription
+        TenantSubscription::create([
+            'tenant_id'    => $tenant->id,
+            'plan_id'      => $freePlan->id,
+            'status'       => 'trialing',
+            'trial_ends_at' => now()->addDays(14),
         ]);
 
         // Associate user with tenant and set role
         $user->update([
             'tenant_id' => $tenant->id,
-            'role' => $validated['role'] ?? 'owner',
+            'role'      => $validated['role'] ?? 'owner',
         ]);
 
         $user->load('tenant');
 
         return response()->json([
-            'user' => $user,
+            'user'   => $user,
             'tenant' => $tenant,
         ], 201);
     }

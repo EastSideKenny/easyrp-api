@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,9 +31,19 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, PlanLimitService $limits): JsonResponse
     {
         $tenant = $request->user()->tenant;
+
+        if ($limits->isAtLimit($tenant, 'orders')) {
+            return response()->json([
+                'message'  => 'You have reached the order limit for your plan. Please upgrade to add more.',
+                'error'    => 'limit_reached',
+                'resource' => 'orders',
+                'limit'    => $limits->getLimit($tenant, 'orders'),
+                'used'     => $limits->getUsage($tenant, 'orders'),
+            ], 403);
+        }
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],

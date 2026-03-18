@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,9 +29,19 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, PlanLimitService $limits): JsonResponse
     {
         $tenant = $request->user()->tenant;
+
+        if ($limits->isAtLimit($tenant, 'products')) {
+            return response()->json([
+                'message'  => 'You have reached the product limit for your plan. Please upgrade to add more.',
+                'error'    => 'limit_reached',
+                'resource' => 'products',
+                'limit'    => $limits->getLimit($tenant, 'products'),
+                'used'     => $limits->getUsage($tenant, 'products'),
+            ], 403);
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
