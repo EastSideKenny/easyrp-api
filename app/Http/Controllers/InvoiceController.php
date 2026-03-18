@@ -27,7 +27,7 @@ class InvoiceController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $invoice->load('items', 'customer', 'payments');
+        $invoice->load('items', 'customer', 'payments', 'order:id,order_number,status');
 
         return response()->json($invoice);
     }
@@ -38,6 +38,7 @@ class InvoiceController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
+            'order_id' => ['nullable', 'exists:orders,id'],
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
@@ -94,6 +95,7 @@ class InvoiceController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
+            'order_id' => ['nullable', 'exists:orders,id'],
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
@@ -149,6 +151,11 @@ class InvoiceController extends Controller
                 'transaction_reference' => $validated['transaction_reference'] ?? null,
                 'paid_at' => now(),
             ]);
+
+            // Mark attached order as paid
+            if ($invoice->order_id) {
+                $invoice->order()->update(['status' => 'paid', 'payment_status' => 'paid']);
+            }
 
             foreach ($invoice->items()->with('product')->get() as $item) {
                 $product = $item->product;

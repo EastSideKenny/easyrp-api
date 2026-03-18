@@ -54,6 +54,11 @@ class PaymentController extends Controller
 
         if ($totalPaid >= $invoice->total) {
             $invoice->update(['status' => 'paid']);
+
+            // Mark attached order as paid
+            if ($invoice->order_id) {
+                $invoice->order()->update(['status' => 'paid', 'payment_status' => 'paid']);
+            }
         }
 
         return response()->json($payment->load('invoice:id,invoice_number,customer_id', 'invoice.customer:id,name'), 201);
