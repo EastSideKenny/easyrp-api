@@ -25,7 +25,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load('items.product:id,name', 'customer');
+        $order->load('items', 'customer');
 
         return response()->json($order);
     }
@@ -36,7 +36,7 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'status' => ['sometimes', 'in:pending,paid,done,canceled'],
+            'status' => ['sometimes', 'in:pending,paid,canceled'],
             'currency' => ['sometimes', 'string', 'size:3'],
             'payment_status' => ['sometimes', 'in:pending,paid,failed'],
             'items' => ['required', 'array', 'min:1'],
@@ -52,7 +52,7 @@ class OrderController extends Controller
 
         $items = collect($validated['items']);
         $subtotal = $items->sum('line_total');
-        $taxTotal = $items->sum(fn($item) => $item['line_total'] * (($item['tax_rate'] ?? 0) / 100));
+        $taxTotal = $items->sum(fn ($item) => $item['line_total'] * (($item['tax_rate'] ?? 0) / 100));
         $total = $subtotal + $taxTotal;
 
         $order = DB::transaction(function () use ($validated, $tenant, $orderNumber, $subtotal, $taxTotal, $total) {
@@ -96,7 +96,7 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'status' => ['sometimes', 'in:pending,paid,done,canceled'],
+            'status' => ['sometimes', 'in:pending,paid,canceled'],
             'subtotal' => ['sometimes', 'numeric', 'min:0'],
             'tax_total' => ['sometimes', 'numeric', 'min:0'],
             'total' => ['sometimes', 'numeric', 'min:0'],
