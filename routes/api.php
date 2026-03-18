@@ -13,6 +13,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SetupProgressController;
 use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\WebshopSettingController;
@@ -25,6 +26,14 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Public tenant resolve
 Route::get('/tenants/resolve/{subdomain}', [TenantController::class, 'resolve']);
+
+// Public storefront routes (no auth required)
+Route::prefix('storefront/{subdomain}')->group(function () {
+    Route::get('/settings', [StorefrontController::class, 'settings']);
+    Route::get('/products', [StorefrontController::class, 'products']);
+    Route::get('/products/{product}', [StorefrontController::class, 'product']);
+    Route::get('/categories', [StorefrontController::class, 'categories']);
+});
 
 // Protected routes (require Sanctum token)
 Route::middleware('auth:sanctum')->group(function () {
