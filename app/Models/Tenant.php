@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['name', 'slug', 'subdomain', 'industry', 'team_size', 'modules', 'plan_id', 'is_active'])]
+#[Fillable(['name', 'slug', 'subdomain', 'industry', 'team_size', 'modules', 'currency', 'plan_id', 'is_active'])]
 class Tenant extends Model
 {
     protected function casts(): array

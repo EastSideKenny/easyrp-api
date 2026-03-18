@@ -26,12 +26,13 @@ class TenantController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name'     => ['required', 'string', 'max:255'],
             'industry' => ['nullable', 'string', 'in:retail,manufacturing,wholesale,services,food,construction,healthcare,technology,agriculture,other'],
             'team_size' => ['nullable', 'string', 'in:solo,2-5,6-20,20+'],
-            'role' => ['nullable', 'string', 'in:owner,manager,accountant,operations,sales,other'],
-            'modules' => ['nullable', 'array'],
+            'role'     => ['nullable', 'string', 'in:owner,manager,accountant,operations,sales,other'],
+            'modules'  => ['nullable', 'array'],
             'modules.*' => ['string', 'in:invoices,products,customers,reports,storefront'],
+            'currency' => ['nullable', 'string', 'size:3'],
         ]);
 
         // Generate a unique subdomain from the business name
@@ -46,6 +47,7 @@ class TenantController extends Controller
             'industry'  => $validated['industry'] ?? null,
             'team_size' => $validated['team_size'] ?? null,
             'modules'   => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products'],
+            'currency'  => strtoupper($validated['currency'] ?? 'USD'),
             'plan_id'   => $freePlan->id,
         ]);
 
@@ -105,10 +107,15 @@ class TenantController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'slug' => ['sometimes', 'string', 'max:255', 'unique:tenants,slug,' . $tenant->id],
+            'name'      => ['sometimes', 'string', 'max:255'],
+            'slug'      => ['sometimes', 'string', 'max:255', 'unique:tenants,slug,' . $tenant->id],
             'subdomain' => ['sometimes', 'string', 'max:255', 'unique:tenants,subdomain,' . $tenant->id],
+            'currency'  => ['sometimes', 'string', 'size:3'],
         ]);
+
+        if (isset($validated['currency'])) {
+            $validated['currency'] = strtoupper($validated['currency']);
+        }
 
         $tenant->update($validated);
 

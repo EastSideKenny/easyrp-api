@@ -76,18 +76,35 @@ class PlanLimitService
     }
 
     /**
-     * Build a full usage snapshot for all limited resources.
-     * Returns an array keyed by feature code with 'limit', 'used', and 'remaining'.
+     * Build a usage snapshot scoped to features actually on the tenant's active plan.
+     * Only features present in MODEL_MAP are included. Returns an array keyed by
+     * feature code with 'limit', 'used', and 'remaining'.
      */
     public function getUsageSnapshot(Tenant $tenant): array
     {
+        $activeSub = $tenant->subscriptions()
+            ->with('plan.features')
+            ->get()
+            ->first(fn($sub) => $sub->hasActiveAccess());
+
+        if (! $activeSub) {
+            return [];
+        }
+
         $snapshot = [];
 
-        foreach (array_keys(self::MODEL_MAP) as $featureCode) {
-            $limit = $this->getLimit($tenant, $featureCode);
-            $used  = $this->getUsage($tenant, $featureCode);
+        foreach ($activeSub->plan->features as $feature) {
+            $code = $feature->code;
 
-            $snapshot[$featureCode] = [
+            // Only include features we can count
+            if (! array_key_exists($code, self::MODEL_MAP)) {
+                continue;
+            }
+
+            $limit = $feature->pivot->limit; // null = unlimited
+            $used  = $this->getUsage($tenant, $code);
+
+            $snapshot[$code] = [
                 'limit'     => $limit,
                 'used'      => $used,
                 'remaining' => $limit === null ? null : max(0, $limit - $used),
