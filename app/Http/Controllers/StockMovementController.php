@@ -13,7 +13,11 @@ class StockMovementController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(StockMovement::where('tenant_id', $tenant->id)->get());
+        return response()->json(
+            StockMovement::where('tenant_id', $tenant->id)
+                ->with('product:id,name')
+                ->get()
+        );
     }
 
     public function show(Request $request, StockMovement $stockMovement): JsonResponse
@@ -24,7 +28,7 @@ class StockMovementController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        return response()->json($stockMovement);
+        return response()->json($stockMovement->load('product:id,name'));
     }
 
     public function store(Request $request): JsonResponse
