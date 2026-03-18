@@ -228,7 +228,7 @@ class OfferController extends Controller
                 'message' => 'Accepted offers cannot be deleted.',
                 'error'   => 'offer_locked',
                 'status'  => $offer->status,
-            ], 403);
+            ], 422);
         }
 
         $pdfService->delete($offer);

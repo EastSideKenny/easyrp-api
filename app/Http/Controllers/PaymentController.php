@@ -73,14 +73,9 @@ class PaymentController extends Controller
 
     public function destroy(Request $request, Payment $payment): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($payment->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
-        $payment->delete();
-
-        return response()->json(null, 204);
+        return response()->json([
+            'message' => 'Payments cannot be deleted. They form part of the financial audit trail.',
+            'error'   => 'payment_protected',
+        ], 422);
     }
 }

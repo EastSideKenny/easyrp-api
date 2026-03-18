@@ -65,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('trial.active')->group(function () {
         // Products
         Route::apiResource('products', ProductController::class);
+        Route::get('/products/{product}/in-use', [ProductController::class, 'inUse']);
 
         // Product Categories
         Route::apiResource('product-categories', ProductCategoryController::class);

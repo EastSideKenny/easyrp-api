@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -101,8 +102,34 @@ class ProductController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
+        $inUse = DB::table('order_items')->where('product_id', $product->id)->exists()
+            || DB::table('invoice_items')->where('product_id', $product->id)->exists()
+            || DB::table('offer_items')->where('product_id', $product->id)->exists();
+
+        if ($inUse) {
+            return response()->json([
+                'message' => 'This product cannot be deleted because it is referenced in orders, invoices, or offers.',
+                'error'   => 'product_in_use',
+            ], 422);
+        }
+
         $product->delete();
 
         return response()->json(['message' => 'Product deleted.']);
+    }
+
+    public function inUse(Request $request, Product $product): JsonResponse
+    {
+        $tenant = $request->user()->tenant;
+
+        if ($product->tenant_id !== $tenant->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        $inUse = DB::table('order_items')->where('product_id', $product->id)->exists()
+            || DB::table('invoice_items')->where('product_id', $product->id)->exists()
+            || DB::table('offer_items')->where('product_id', $product->id)->exists();
+
+        return response()->json(['in_use' => $inUse]);
     }
 }

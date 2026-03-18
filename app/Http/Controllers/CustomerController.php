@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\Order;
 use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -97,6 +99,16 @@ class CustomerController extends Controller
 
         if ($customer->tenant_id !== $tenant->id) {
             return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        $hasOrders   = Order::where('customer_id', $customer->id)->where('tenant_id', $tenant->id)->exists();
+        $hasInvoices = Invoice::where('customer_id', $customer->id)->where('tenant_id', $tenant->id)->exists();
+
+        if ($hasOrders || $hasInvoices) {
+            return response()->json([
+                'message' => 'This customer cannot be deleted because they have associated orders or invoices.',
+                'error'   => 'customer_in_use',
+            ], 422);
         }
 
         $customer->delete();

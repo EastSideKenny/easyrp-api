@@ -114,6 +114,14 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
+        if (in_array($order->status, ['paid', 'done', 'canceled'])) {
+            return response()->json([
+                'message' => "Orders with status '{$order->status}' cannot be edited.",
+                'error'   => 'order_locked',
+                'status'  => $order->status,
+            ], 422);
+        }
+
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
             'status' => ['sometimes', 'in:pending,paid,done,canceled'],
@@ -123,6 +131,15 @@ class OrderController extends Controller
             'currency' => ['sometimes', 'string', 'size:3'],
             'payment_status' => ['sometimes', 'in:pending,paid,failed'],
         ]);
+
+        // Cancel transition: only allowed from pending
+        if (isset($validated['status']) && $validated['status'] === 'canceled' && $order->status !== 'pending') {
+            return response()->json([
+                'message' => 'Only pending orders can be canceled.',
+                'error'   => 'invalid_transition',
+                'status'  => $order->status,
+            ], 422);
+        }
 
         $order->update($validated);
 
