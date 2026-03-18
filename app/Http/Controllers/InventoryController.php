@@ -33,6 +33,9 @@ class InventoryController extends Controller
             $query->orderBy($sortBy, $sortDir === 'desc' ? 'desc' : 'asc');
         }
 
+        $perPage = $request->integer('per_page', 50);
+        $page    = $request->integer('page', 1);
+
         $products = $query->get();
 
         // Build inventory items with computed fields
@@ -69,14 +72,20 @@ class InventoryController extends Controller
         $lowStockCount = $items->where('status', 'low_stock')->count();
         $outOfStockCount = $items->where('status', 'out_of_stock')->count();
 
+        $paginated = $items->forPage($page, $perPage);
+
         return response()->json([
             'summary' => [
-                'total_skus' => $totalSkus,
-                'total_units' => $totalUnits,
-                'low_stock' => $lowStockCount,
+                'total_skus'   => $totalSkus,
+                'total_units'  => $totalUnits,
+                'low_stock'    => $lowStockCount,
                 'out_of_stock' => $outOfStockCount,
             ],
-            'items' => $items->values(),
+            'items'        => $paginated->values(),
+            'total'        => $totalSkus,
+            'per_page'     => $perPage,
+            'current_page' => $page,
+            'last_page'    => (int) ceil($totalSkus / $perPage),
         ]);
     }
 }

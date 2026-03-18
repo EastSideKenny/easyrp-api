@@ -12,7 +12,13 @@ class ProductCategoryController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(ProductCategory::where('tenant_id', $tenant->id)->get());
+        $perPage = $request->integer('per_page', 25);
+
+        return response()->json(
+            ProductCategory::where('tenant_id', $tenant->id)
+                ->orderBy('name')
+                ->paginate($perPage)
+        );
     }
 
     public function show(Request $request, ProductCategory $productCategory): JsonResponse

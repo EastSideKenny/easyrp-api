@@ -13,7 +13,13 @@ class CustomerController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(Customer::where('tenant_id', $tenant->id)->get());
+        $perPage = $request->integer('per_page', 25);
+
+        return response()->json(
+            Customer::where('tenant_id', $tenant->id)
+                ->latest()
+                ->paginate($perPage)
+        );
     }
 
     public function show(Request $request, Customer $customer): JsonResponse

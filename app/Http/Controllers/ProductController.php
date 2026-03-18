@@ -13,9 +13,13 @@ class ProductController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        $products = Product::where('tenant_id', $tenant->id)->get();
+        $perPage = $request->integer('per_page', 25);
 
-        return response()->json($products);
+        return response()->json(
+            Product::where('tenant_id', $tenant->id)
+                ->latest()
+                ->paginate($perPage)
+        );
     }
 
     public function show(Request $request, Product $product): JsonResponse

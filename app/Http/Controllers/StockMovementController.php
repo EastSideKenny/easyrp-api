@@ -13,10 +13,13 @@ class StockMovementController extends Controller
     {
         $tenant = $request->user()->tenant;
 
+        $perPage = $request->integer('per_page', 25);
+
         return response()->json(
             StockMovement::where('tenant_id', $tenant->id)
                 ->with('product:id,name')
-                ->get()
+                ->latest()
+                ->paginate($perPage)
         );
     }
 
