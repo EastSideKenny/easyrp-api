@@ -54,8 +54,8 @@ class InvoiceController extends Controller
         $invoiceNumber = 'INV-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         $items = collect($validated['items']);
-        $subtotal = $items->sum('line_total');
-        $taxTotal = $items->sum(fn($item) => $item['line_total'] * (($item['tax_rate'] ?? 0) / 100));
+        $subtotal = $items->sum(fn($item) => $item['unit_price'] * $item['quantity']);
+        $taxTotal = $items->sum(fn($item) => $item['unit_price'] * $item['quantity'] * (($item['tax_rate'] ?? 0) / 100));
         $total = $subtotal + $taxTotal;
 
 
