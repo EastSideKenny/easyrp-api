@@ -20,6 +20,7 @@ class PlanSeeder extends Seeder
             ['code' => 'reports',    'name' => 'Reports',    'description' => 'Advanced reporting and analytics'],
             ['code' => 'payments',   'name' => 'Payments',   'description' => 'Record and track payments'],
             ['code' => 'inventory',  'name' => 'Inventory',  'description' => 'Stock movements and inventory management'],
+            ['code' => 'offers',     'name' => 'Offers',     'description' => 'Create and send quotes / offers to customers'],
         ];
 
         foreach ($features as $feature) {
@@ -40,6 +41,7 @@ class PlanSeeder extends Seeder
                     'products'  => 25,
                     'customers' => 25,
                     'orders'    => 25,
+                    'offers'    => 25,
                     'payments'  => null,
                     'inventory' => null,
                 ],
@@ -55,6 +57,7 @@ class PlanSeeder extends Seeder
                     'products'  => 250,
                     'customers' => 250,
                     'orders'    => 250,
+                    'offers'    => 250,
                     'payments'  => null,
                     'inventory' => null,
                 ],
@@ -70,6 +73,7 @@ class PlanSeeder extends Seeder
                     'products'   => null,
                     'customers'  => null,
                     'orders'     => null,
+                    'offers'     => null,
                     'payments'   => null,
                     'inventory'  => null,
                     'storefront' => null,

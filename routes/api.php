@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeatureController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlanController;
@@ -88,6 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Inventory
         Route::get('/inventory', [InventoryController::class, 'index']);
+
+        // Offers
+        Route::apiResource('offers', OfferController::class);
+        Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
+        Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
 
         // Orders
         Route::apiResource('orders', OrderController::class);

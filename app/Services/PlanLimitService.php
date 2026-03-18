@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Tenant;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
 
@@ -18,6 +19,7 @@ class PlanLimitService
         'products'  => Product::class,
         'invoices'  => Invoice::class,
         'orders'    => Order::class,
+        'offers'    => Offer::class,
     ];
 
     /**
