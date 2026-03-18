@@ -135,6 +135,14 @@ class OfferController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
+        if ($offer->status === 'accepted') {
+            return response()->json([
+                'message' => 'Accepted offers cannot be edited.',
+                'error'   => 'offer_locked',
+                'status'  => $offer->status,
+            ], 403);
+        }
+
         $tenantId = $tenant->id;
 
         $validated = $request->validate([
