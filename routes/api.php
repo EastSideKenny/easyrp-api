@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\FeatureController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
@@ -68,6 +69,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stock-movements', [StockMovementController::class, 'index']);
     Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
     Route::post('/stock-movements', [StockMovementController::class, 'store']);
+
+    // Inventory
+    Route::get('/inventory', [InventoryController::class, 'index']);
 
     // Orders
     Route::apiResource('orders', OrderController::class);
