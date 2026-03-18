@@ -17,7 +17,16 @@ class InvoiceController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(Invoice::where('tenant_id', $tenant->id)->with('customer:id,name')->get());
+        $query = Invoice::where('tenant_id', $tenant->id)
+            ->with('customer:id,name');
+
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->integer('customer_id'));
+        }
+
+        $perPage = $request->integer('per_page', 25);
+
+        return response()->json($query->latest()->paginate($perPage));
     }
 
     public function show(Request $request, Invoice $invoice): JsonResponse

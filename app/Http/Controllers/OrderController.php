@@ -15,7 +15,16 @@ class OrderController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(Order::where('tenant_id', $tenant->id)->get());
+        $query = Order::where('tenant_id', $tenant->id)
+            ->with('customer:id,name');
+
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->integer('customer_id'));
+        }
+
+        $perPage = $request->integer('per_page', 25);
+
+        return response()->json($query->latest()->paginate($perPage));
     }
 
     public function show(Request $request, Order $order): JsonResponse

@@ -13,11 +13,18 @@ class PaymentController extends Controller
     {
         $tenant = $request->user()->tenant;
 
-        return response()->json(
-            Payment::where('tenant_id', $tenant->id)
-                ->with('invoice:id,invoice_number,customer_id', 'invoice.customer:id,name')
-                ->get()
-        );
+        $query = Payment::where('tenant_id', $tenant->id)
+            ->with('invoice:id,invoice_number,customer_id,total', 'invoice.customer:id,name');
+
+        if ($request->filled('customer_id')) {
+            $query->whereHas('invoice', function ($q) use ($request) {
+                $q->where('customer_id', $request->integer('customer_id'));
+            });
+        }
+
+        $perPage = $request->integer('per_page', 25);
+
+        return response()->json($query->latest()->paginate($perPage));
     }
 
     public function show(Request $request, Payment $payment): JsonResponse
