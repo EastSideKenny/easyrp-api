@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
@@ -40,19 +41,45 @@ class InvoiceController extends Controller
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
-            'subtotal' => ['sometimes', 'numeric', 'min:0'],
-            'tax_total' => ['sometimes', 'numeric', 'min:0'],
-            'total' => ['sometimes', 'numeric', 'min:0'],
-            'currency' => ['sometimes', 'string', 'size:3'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['nullable', 'exists:products,id'],
+            'items.*.description' => ['nullable', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.tax_rate' => ['sometimes', 'numeric', 'min:0'],
+            'items.*.line_total' => ['required', 'numeric', 'min:0'],
         ]);
 
         $invoiceNumber = 'INV-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $items = collect($validated['items']);
+        $subtotal = $items->sum('line_total');
+        $taxTotal = $items->sum(fn($item) => $item['line_total'] * (($item['tax_rate'] ?? 0) / 100));
+        $total = $subtotal + $taxTotal;
+
 
         $invoice = Invoice::create(array_merge($validated, [
             'tenant_id' => $tenant->id,
             'invoice_number' => $invoiceNumber,
             'created_by' => $request->user()->id,
+            'subtotal' => round($subtotal, 2),
+            'tax_total' => round($taxTotal, 2),
+            'total' => round($total, 2),
+            'currency' => $validated['currency'] ?? 'USD',
         ]));
+
+        foreach ($validated['items'] as $item) {
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $item['product_id'] ?? null,
+                'description' => $item['description'] ?? null,
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'tax_rate' => $item['tax_rate'] ?? 0,
+                'line_total' => $item['line_total'],
+            ]);
+        }
+
 
         return response()->json($invoice, 201);
     }
