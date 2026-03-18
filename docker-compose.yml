@@ -10,6 +10,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     volumes:
       - .:/var/www
+      - vendor_data:/var/www/vendor
     depends_on:
       - postgres
       - redis
@@ -63,3 +64,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  vendor_data:
