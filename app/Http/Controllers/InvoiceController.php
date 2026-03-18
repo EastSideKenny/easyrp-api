@@ -57,6 +57,7 @@ class InvoiceController extends Controller
         }
 
         $tenantId = $tenant->id;
+        $currency = $tenant->currency;
 
         $validated = $request->validate([
             'customer_id' => ['nullable', "exists:customers,id,tenant_id,{$tenantId}"],
@@ -88,7 +89,7 @@ class InvoiceController extends Controller
             'subtotal' => round($subtotal, 2),
             'tax_total' => round($taxTotal, 2),
             'total' => round($total, 2),
-            'currency' => $validated['currency'] ?? 'USD',
+            'currency' => $currency ?? 'USD',
         ]));
 
         foreach ($validated['items'] as $item) {
