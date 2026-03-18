@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -23,7 +25,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load('items', 'customer');
+        $order->load('items.product:id,name', 'customer');
 
         return response()->json($order);
     }
@@ -34,22 +36,54 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'status' => ['sometimes', 'in:pending,paid,canceled'],
-            'subtotal' => ['sometimes', 'numeric', 'min:0'],
-            'tax_total' => ['sometimes', 'numeric', 'min:0'],
-            'total' => ['sometimes', 'numeric', 'min:0'],
+            'status' => ['sometimes', 'in:pending,paid,done,canceled'],
             'currency' => ['sometimes', 'string', 'size:3'],
             'payment_status' => ['sometimes', 'in:pending,paid,failed'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['nullable', 'exists:products,id'],
+            'items.*.description' => ['nullable', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.tax_rate' => ['sometimes', 'numeric', 'min:0'],
+            'items.*.line_total' => ['required', 'numeric', 'min:0'],
         ]);
 
         $orderNumber = 'ORD-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        $order = Order::create(array_merge($validated, [
-            'tenant_id' => $tenant->id,
-            'order_number' => $orderNumber,
-        ]));
+        $items = collect($validated['items']);
+        $subtotal = $items->sum('line_total');
+        $taxTotal = $items->sum(fn($item) => $item['line_total'] * (($item['tax_rate'] ?? 0) / 100));
+        $total = $subtotal + $taxTotal;
 
-        return response()->json($order, 201);
+        $order = DB::transaction(function () use ($validated, $tenant, $orderNumber, $subtotal, $taxTotal, $total) {
+            $order = Order::create([
+                'tenant_id' => $tenant->id,
+                'order_number' => $orderNumber,
+                'customer_id' => $validated['customer_id'] ?? null,
+                'status' => $validated['status'] ?? 'pending',
+                'subtotal' => round($subtotal, 2),
+                'tax_total' => round($taxTotal, 2),
+                'total' => round($total, 2),
+                'currency' => $validated['currency'] ?? 'USD',
+                'payment_status' => $validated['payment_status'] ?? 'pending',
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'] ?? null,
+                    'description' => $item['description'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'tax_rate' => $item['tax_rate'] ?? 0,
+                    'line_total' => $item['line_total'],
+                ]);
+            }
+
+            return $order;
+        });
+
+        return response()->json($order->load('items', 'customer'), 201);
     }
 
     public function update(Request $request, Order $order): JsonResponse
@@ -62,7 +96,7 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'status' => ['sometimes', 'in:pending,paid,canceled'],
+            'status' => ['sometimes', 'in:pending,paid,done,canceled'],
             'subtotal' => ['sometimes', 'numeric', 'min:0'],
             'tax_total' => ['sometimes', 'numeric', 'min:0'],
             'total' => ['sometimes', 'numeric', 'min:0'],
