@@ -140,7 +140,7 @@ class OfferController extends Controller
                 'message' => 'Accepted offers cannot be edited.',
                 'error'   => 'offer_locked',
                 'status'  => $offer->status,
-            ], 403);
+            ], 422);
         }
 
         $tenantId = $tenant->id;

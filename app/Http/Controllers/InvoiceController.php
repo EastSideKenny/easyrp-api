@@ -121,7 +121,7 @@ class InvoiceController extends Controller
                 'message' => 'Only draft or canceled invoices can be edited.',
                 'error'   => 'invoice_locked',
                 'status'  => $invoice->status,
-            ], 403);
+            ], 422);
         }
 
         $tenantId = $tenant->id;
@@ -156,7 +156,7 @@ class InvoiceController extends Controller
                 'message' => 'Only draft or canceled invoices can be deleted.',
                 'error'   => 'invoice_locked',
                 'status'  => $invoice->status,
-            ], 403);
+            ], 422);
         }
 
         $invoice->delete();
