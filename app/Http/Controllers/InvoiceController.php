@@ -115,6 +115,14 @@ class InvoiceController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
+        if (! in_array($invoice->status, ['draft', 'canceled'])) {
+            return response()->json([
+                'message' => 'Only draft or canceled invoices can be edited.',
+                'error'   => 'invoice_locked',
+                'status'  => $invoice->status,
+            ], 403);
+        }
+
         $tenantId = $tenant->id;
 
         $validated = $request->validate([
@@ -140,6 +148,14 @@ class InvoiceController extends Controller
 
         if ($invoice->tenant_id !== $tenant->id) {
             return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if (! in_array($invoice->status, ['draft', 'canceled'])) {
+            return response()->json([
+                'message' => 'Only draft or canceled invoices can be deleted.',
+                'error'   => 'invoice_locked',
+                'status'  => $invoice->status,
+            ], 403);
         }
 
         $invoice->delete();

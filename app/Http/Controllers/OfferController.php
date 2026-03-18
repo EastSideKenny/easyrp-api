@@ -6,6 +6,8 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Offer;
 use App\Models\OfferItem;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Services\OfferPdfService;
 use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
@@ -299,5 +301,95 @@ class OfferController extends Controller
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => "inline; filename=\"{$filename}\"",
         ]);
+    }
+
+    public function accept(Request $request, Offer $offer): JsonResponse
+    {
+        $tenant = $request->user()->tenant;
+
+        if ($offer->tenant_id !== $tenant->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if (in_array($offer->status, ['accepted', 'declined'])) {
+            return response()->json([
+                'message' => "Offer is already {$offer->status} and cannot be accepted.",
+            ], 422);
+        }
+
+        $offer->loadMissing('items');
+
+        $result = DB::transaction(function () use ($offer, $tenant, $request) {
+            // 1. Create Order
+            $orderNumber = 'ORD-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            $order = Order::create([
+                'tenant_id'      => $tenant->id,
+                'order_number'   => $orderNumber,
+                'customer_id'    => $offer->customer_id,
+                'status'         => 'pending',
+                'subtotal'       => $offer->subtotal,
+                'tax_total'      => $offer->tax_total,
+                'total'          => $offer->total,
+                'currency'       => $offer->currency,
+                'payment_status' => 'pending',
+            ]);
+
+            foreach ($offer->items as $item) {
+                OrderItem::create([
+                    'order_id'    => $order->id,
+                    'product_id'  => $item->product_id,
+                    'description' => $item->description,
+                    'quantity'    => $item->quantity,
+                    'unit_price'  => $item->unit_price,
+                    'tax_rate'    => $item->tax_rate,
+                    'line_total'  => $item->line_total,
+                ]);
+            }
+
+            // 2. Create Invoice linked to the order
+            $invoiceNumber = 'INV-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            $invoice = Invoice::create([
+                'tenant_id'      => $tenant->id,
+                'invoice_number' => $invoiceNumber,
+                'customer_id'    => $offer->customer_id,
+                'order_id'       => $order->id,
+                'status'         => 'draft',
+                'issue_date'     => now()->toDateString(),
+                'due_date'       => now()->addDays(30)->toDateString(),
+                'subtotal'       => $offer->subtotal,
+                'tax_total'      => $offer->tax_total,
+                'total'          => $offer->total,
+                'currency'       => $offer->currency,
+                'created_by'     => $request->user()->id,
+            ]);
+
+            foreach ($offer->items as $item) {
+                InvoiceItem::create([
+                    'invoice_id'  => $invoice->id,
+                    'product_id'  => $item->product_id,
+                    'description' => $item->description,
+                    'quantity'    => $item->quantity,
+                    'unit_price'  => $item->unit_price,
+                    'tax_rate'    => $item->tax_rate,
+                    'line_total'  => $item->line_total,
+                ]);
+            }
+
+            // 3. Mark offer as accepted and link the invoice
+            $offer->update([
+                'status'     => 'accepted',
+                'invoice_id' => $invoice->id,
+            ]);
+
+            return compact('order', 'invoice');
+        });
+
+        return response()->json([
+            'message' => 'Offer accepted. Order and invoice have been created.',
+            'order'   => $result['order']->load('items'),
+            'invoice' => $result['invoice']->load('items'),
+        ], 201);
     }
 }
