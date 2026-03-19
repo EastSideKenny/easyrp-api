@@ -23,22 +23,23 @@ class TenantController extends Controller
             return response()->json([
                 'message' => 'You already have a workspace.',
             ], 409);
-        }
+    }
 
         $validated = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'industry' => ['nullable', 'string', 'in:retail,manufacturing,wholesale,services,food,construction,healthcare,technology,agriculture,other'],
+            'name'      => ['required', 'string', 'max:255'],
+            'industry'  => ['nullable', 'string', 'in:retail,manufacturing,wholesale,services,food,construction,healthcare,technology,agriculture,other'],
             'team_size' => ['nullable', 'string', 'in:solo,2-5,6-20,20+'],
-            'role'     => ['nullable', 'string', 'in:owner,manager,accountant,operations,sales,other'],
-            'modules'  => ['nullable', 'array'],
+            'role'      => ['nullable', 'string', 'in:owner,manager,accountant,operations,sales,other'],
+            'modules'   => ['nullable', 'array'],
             'modules.*' => ['string', 'in:invoices,products,customers,reports,storefront'],
-            'currency' => ['nullable', 'string', 'size:3'],
+            'currency'  => ['nullable', 'string', 'size:3'],
+            'plan'      => ['nullable', 'string', 'exists:plans,slug'],
         ]);
 
         // Generate a unique subdomain from the business name
         $subdomain = $this->generateUniqueSubdomain($validated['name']);
 
-        $freePlan = Plan::where('slug', 'free_trial')->where('is_active', true)->firstOrFail();
+        $plan = Plan::where('slug', $validated['plan'] ?? 'free_trial')->where('is_active', true)->firstOrFail();
 
         $tenant = Tenant::create([
             'name'      => $validated['name'],
@@ -48,14 +49,14 @@ class TenantController extends Controller
             'team_size' => $validated['team_size'] ?? null,
             'modules'   => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products', 'customers'],
             'currency'  => strtoupper($validated['currency'] ?? 'USD'),
-            'plan_id'   => $freePlan->id,
+            'plan_id'   => $plan->id,
         ]);
 
-        // Create a 14-day free trial subscription
+        // Create a 14-day trial subscription on the selected plan
         TenantSubscription::create([
-            'tenant_id'    => $tenant->id,
-            'plan_id'      => $freePlan->id,
-            'status'       => 'trialing',
+            'tenant_id'     => $tenant->id,
+            'plan_id'       => $plan->id,
+            'status'        => 'trialing',
             'trial_ends_at' => now()->addDays(14),
         ]);
 
