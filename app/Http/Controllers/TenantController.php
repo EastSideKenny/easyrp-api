@@ -46,7 +46,7 @@ class TenantController extends Controller
             'subdomain' => $subdomain,
             'industry'  => $validated['industry'] ?? null,
             'team_size' => $validated['team_size'] ?? null,
-            'modules'   => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products'],
+            'modules'   => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products', 'customers'],
             'currency'  => strtoupper($validated['currency'] ?? 'USD'),
             'plan_id'   => $freePlan->id,
         ]);
