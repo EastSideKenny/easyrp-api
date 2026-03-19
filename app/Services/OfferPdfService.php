@@ -24,14 +24,14 @@ class OfferPdfService
 
         $pdf->setPaper('a4', 'portrait');
 
-        $relativePath = "public/offers/{$offer->tenant_id}/{$offer->offer_number}.pdf";
+        $relativePath = "offers/{$offer->tenant_id}/{$offer->offer_number}.pdf";
 
         // Ensure the directory exists.
-        Storage::makeDirectory("public/offers/{$offer->tenant_id}");
+        Storage::disk('public')->makeDirectory("offers/{$offer->tenant_id}");
 
-        Storage::put($relativePath, $pdf->output());
+        Storage::disk('public')->put($relativePath, $pdf->output());
 
-        // Store the path relative to the storage root so Storage::url() works.
+        // Store the path so Storage::disk('public')->url() works.
         $offer->pdf_path = $relativePath;
         $offer->save();
 
@@ -43,8 +43,8 @@ class OfferPdfService
      */
     public function delete(Offer $offer): void
     {
-        if ($offer->pdf_path && Storage::exists($offer->pdf_path)) {
-            Storage::delete($offer->pdf_path);
+        if ($offer->pdf_path && Storage::disk('public')->exists($offer->pdf_path)) {
+            Storage::disk('public')->delete($offer->pdf_path);
         }
     }
 }

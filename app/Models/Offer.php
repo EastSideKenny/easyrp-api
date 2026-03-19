@@ -40,7 +40,7 @@ class Offer extends Model
     public function getPdfUrlAttribute(): ?string
     {
         return $this->pdf_path
-            ? Storage::url($this->pdf_path)
+            ? Storage::disk('public')->url($this->pdf_path)
             : null;
     }
 

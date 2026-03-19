@@ -121,10 +121,22 @@ class OfferController extends Controller
         });
 
         // Generate PDF after transaction so all items exist.
-        $offer = $pdfService->generate($offer);
+        $pdfError = null;
+        try {
+            $offer = $pdfService->generate($offer);
+        } catch (\Throwable $e) {
+            $pdfError = $e->getMessage();
+            report($e);
+        }
+
         $offer->load(['items.product', 'customer']);
 
-        return response()->json($offer, 201);
+        $response = $offer->toArray();
+        if ($pdfError !== null) {
+            $response['pdf_warning'] = 'PDF generation failed: ' . $pdfError;
+        }
+
+        return response()->json($response, 201);
     }
 
     public function update(Request $request, Offer $offer, OfferPdfService $pdfService): JsonResponse
@@ -207,12 +219,23 @@ class OfferController extends Controller
         $offer->refresh();
 
         if ($regeneratePdf) {
-            $offer = $pdfService->generate($offer);
+            $pdfError = null;
+            try {
+                $offer = $pdfService->generate($offer);
+            } catch (\Throwable $e) {
+                $pdfError = $e->getMessage();
+                report($e);
+            }
         }
 
         $offer->load(['items.product', 'customer']);
 
-        return response()->json($offer);
+        $response = $offer->toArray();
+        if (isset($pdfError) && $pdfError !== null) {
+            $response['pdf_warning'] = 'PDF generation failed: ' . $pdfError;
+        }
+
+        return response()->json($response);
     }
 
     public function destroy(Request $request, Offer $offer, OfferPdfService $pdfService): JsonResponse
@@ -306,11 +329,11 @@ class OfferController extends Controller
         }
 
         // Regenerate if somehow missing.
-        if (! $offer->pdf_path || ! Storage::exists($offer->pdf_path)) {
+        if (! $offer->pdf_path || ! Storage::disk('public')->exists($offer->pdf_path)) {
             $offer = $pdfService->generate($offer);
         }
 
-        $contents = Storage::get($offer->pdf_path);
+        $contents = Storage::disk('public')->get($offer->pdf_path);
         $filename  = $offer->offer_number . '.pdf';
 
         return response($contents, 200, [
