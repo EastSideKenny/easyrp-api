@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
+use App\Mail\PaymentReceivedMail;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
@@ -10,6 +12,7 @@ use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceController extends Controller
 {
@@ -37,7 +40,7 @@ class InvoiceController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $invoice->load('items', 'customer', 'payments', 'order:id,order_number,status');
+        $invoice->load('items', 'customer', 'payments');
 
         return response()->json($invoice);
     }
@@ -86,6 +89,8 @@ class InvoiceController extends Controller
             'tenant_id' => $tenant->id,
             'invoice_number' => $invoiceNumber,
             'created_by' => $request->user()->id,
+            'issue_date' => $validated['issue_date'] ?? now()->toDateString(),
+            'due_date' => $validated['due_date'] ?? now()->addDays(30)->toDateString(),
             'subtotal' => round($subtotal, 2),
             'tax_total' => round($taxTotal, 2),
             'total' => round($total, 2),
@@ -139,6 +144,12 @@ class InvoiceController extends Controller
         ]);
 
         $invoice->update($validated);
+
+        // Send invoice email to customer when status changes to 'sent'
+        if (isset($validated['status']) && $validated['status'] === 'sent' && $invoice->customer?->email) {
+            $invoice->load('items');
+            Mail::to($invoice->customer->email)->queue(new InvoiceMail($invoice));
+        }
 
         return response()->json($invoice);
     }
@@ -216,6 +227,37 @@ class InvoiceController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Invoice marked as paid.', 'invoice' => $invoice->fresh()]);
+        // Send payment confirmation email to customer
+        $invoice->refresh();
+        if ($invoice->customer?->email) {
+            Mail::to($invoice->customer->email)->queue(new PaymentReceivedMail($invoice));
+        }
+
+        return response()->json(['message' => 'Invoice marked as paid.', 'invoice' => $invoice]);
+    }
+
+    /**
+     * Send the invoice to the customer via email.
+     */
+    public function send(Request $request, Invoice $invoice): JsonResponse
+    {
+        $tenant = $request->user()->tenant;
+
+        if ($invoice->tenant_id !== $tenant->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if (! $invoice->customer || ! $invoice->customer->email) {
+            return response()->json(['message' => 'Customer email not found.'], 422);
+        }
+
+        $invoice->load('items');
+
+        $invoice->update(['status' => 'sent']);
+        Mail::to($invoice->customer->email)->queue(new InvoiceMail($invoice));
+
+
+
+        return response()->json(['message' => 'Invoice sent to customer.']);
     }
 }

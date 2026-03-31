@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Offer {{ $offer->offer_number }}</title>
+    <title>Invoice {{ $invoice->invoice_number }}</title>
     <style>
         * {
             box-sizing: border-box;
@@ -77,19 +77,14 @@
             color: #3b82f6;
         }
 
-        .status-accepted {
+        .status-paid {
             background: #f0fdf4;
             color: #16a34a;
         }
 
-        .status-declined {
+        .status-canceled {
             background: #fef2f2;
             color: #dc2626;
-        }
-
-        .status-expired {
-            background: #fff7ed;
-            color: #ea580c;
         }
 
         .section-label {
@@ -179,15 +174,15 @@
             padding-top: 10px;
         }
 
-        /* Notes */
-        .notes {
+        /* Payment info */
+        .payment-info {
             margin-top: 32px;
             padding: 16px;
             background: #f9fafb;
             border-left: 3px solid #4f46e5;
         }
 
-        .notes-label {
+        .payment-label {
             font-size: 11px;
             font-weight: 600;
             color: #9ca3af;
@@ -196,7 +191,7 @@
             margin-bottom: 6px;
         }
 
-        .notes-value {
+        .payment-value {
             font-size: 13px;
             color: #374151;
             line-height: 1.6;
@@ -224,10 +219,10 @@
                     <div class="company-name">{{ $tenant->name }}</div>
                 </td>
                 <td style="width:50%; text-align:right;">
-                    <div class="doc-title">OFFER</div>
-                    <div class="doc-number">{{ $offer->offer_number }}</div>
+                    <div class="doc-title">INVOICE</div>
+                    <div class="doc-number">{{ $invoice->invoice_number }}</div>
                     <div style="margin-top:6px; text-align:right;">
-                        <span class="status-badge status-{{ $offer->status }}">{{ ucfirst($offer->status) }}</span>
+                        <span class="status-badge status-{{ $invoice->status }}">{{ ucfirst($invoice->status) }}</span>
                     </div>
                 </td>
             </tr>
@@ -239,13 +234,13 @@
                 <td style="width:50%;">
                     <div class="section-label">Bill To</div>
                     <div class="section-value">
-                        @if($offer->customer)
-                        <strong>{{ $offer->customer->name }}</strong>
-                        @if($offer->customer->email)<br>{{ $offer->customer->email }}@endif
-                        @if($offer->customer->phone)<br>{{ $offer->customer->phone }}@endif
-                        @if($offer->customer->address_line_1)<br>{{ $offer->customer->address_line_1 }}@endif
-                        @if($offer->customer->city)<br>{{ $offer->customer->city }}@if($offer->customer->postal_code), {{ $offer->customer->postal_code }}@endif @endif
-                        @if($offer->customer->country)<br>{{ $offer->customer->country }}@endif
+                        @if($invoice->customer)
+                        <strong>{{ $invoice->customer->name }}</strong>
+                        @if($invoice->customer->email)<br>{{ $invoice->customer->email }}@endif
+                        @if($invoice->customer->phone)<br>{{ $invoice->customer->phone }}@endif
+                        @if($invoice->customer->address_line_1)<br>{{ $invoice->customer->address_line_1 }}@endif
+                        @if($invoice->customer->city)<br>{{ $invoice->customer->city }}@if($invoice->customer->postal_code), {{ $invoice->customer->postal_code }}@endif @endif
+                        @if($invoice->customer->country)<br>{{ $invoice->customer->country }}@endif
                         @else
                         <span style="color:#9ca3af;">&mdash;</span>
                         @endif
@@ -254,12 +249,12 @@
                 <td style="width:50%; text-align:right;">
                     <div style="margin-bottom:12px;">
                         <div class="section-label" style="text-align:right;">Issue Date</div>
-                        <div class="section-value" style="text-align:right;">{{ $offer->issue_date?->format('d M Y') ?? '—' }}</div>
+                        <div class="section-value" style="text-align:right;">{{ $invoice->issue_date?->format('d M Y') ?? '—' }}</div>
                     </div>
                     <div>
-                        <div class="section-label" style="text-align:right;">Valid Until</div>
-                        <div class="section-value" style="text-align:right; {{ $offer->status === 'expired' ? 'color:#dc2626;' : '' }}">
-                            {{ $offer->valid_until?->format('d M Y') ?? '—' }}
+                        <div class="section-label" style="text-align:right;">Due Date</div>
+                        <div class="section-value" style="text-align:right; {{ $invoice->status !== 'paid' && $invoice->due_date?->isPast() ? 'color:#dc2626;' : '' }}">
+                            {{ $invoice->due_date?->format('d M Y') ?? '—' }}
                         </div>
                     </div>
                 </td>
@@ -278,18 +273,18 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($offer->items as $item)
+                @foreach($invoice->items as $item)
                 <tr>
                     <td>
-                        {{ $item->description }}
+                        {{ $item->description ?? $item->product?->name ?? '—' }}
                         @if($item->product?->sku)
                         <div class="sub-text">{{ $item->product->sku }}</div>
                         @endif
                     </td>
                     <td class="right">{{ $item->quantity }}</td>
-                    <td class="right">{{ number_format($item->unit_price, 2) }} {{ $offer->currency }}</td>
+                    <td class="right">{{ number_format($item->unit_price, 2) }} {{ $invoice->currency }}</td>
                     <td class="right">{{ $item->tax_rate }}%</td>
-                    <td class="right">{{ number_format($item->line_total, 2) }} {{ $offer->currency }}</td>
+                    <td class="right">{{ number_format($item->line_total, 2) }} {{ $invoice->currency }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -299,34 +294,39 @@
         <table class="totals-table">
             <tr>
                 <td>Subtotal</td>
-                <td class="amount">{{ number_format($offer->subtotal, 2) }} {{ $offer->currency }}</td>
+                <td class="amount">{{ number_format($invoice->subtotal, 2) }} {{ $invoice->currency }}</td>
             </tr>
             <tr>
                 <td>Tax</td>
-                <td class="amount">{{ number_format($offer->tax_total, 2) }} {{ $offer->currency }}</td>
+                <td class="amount">{{ number_format($invoice->tax_total, 2) }} {{ $invoice->currency }}</td>
             </tr>
             <tr class="total-row">
                 <td>Total</td>
-                <td class="amount">{{ number_format($offer->total, 2) }} {{ $offer->currency }}</td>
+                <td class="amount">{{ number_format($invoice->total, 2) }} {{ $invoice->currency }}</td>
             </tr>
         </table>
 
-        {{-- Notes --}}
-        @if($offer->notes)
-        <div class="notes">
-            <div class="notes-label">Notes</div>
-            <div class="notes-value">{{ $offer->notes }}</div>
+        {{-- Payment Note --}}
+        <div class="payment-info">
+            <div class="payment-label">Payment Terms</div>
+            <div class="payment-value">
+                @if($invoice->status === 'paid')
+                This invoice has been paid in full. Thank you!
+                @else
+                Please process payment by {{ $invoice->due_date?->format('d M Y') ?? 'the agreed date' }}.
+                @endif
+            </div>
         </div>
-        @endif
 
         {{-- Footer --}}
         <div class="footer">
-            {{ $tenant->name }} &mdash; This offer is valid until {{ $offer->valid_until?->format('d M Y') ?? '—' }}
+            {{ $tenant->name }} &mdash; Invoice {{ $invoice->invoice_number }}
+            @if($invoice->due_date)
+            &mdash; Due {{ $invoice->due_date->format('d M Y') }}
+            @endif
         </div>
 
     </div>
 </body>
-
-</html>
 
 </html>

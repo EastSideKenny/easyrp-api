@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OfferMail;
+use App\Mail\OrderConfirmationMail;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Offer;
@@ -14,7 +16,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class OfferController extends Controller
 {
@@ -228,6 +232,15 @@ class OfferController extends Controller
             }
         }
 
+        // Send offer email to customer when status changes to 'sent'
+        if (isset($validated['status']) && $validated['status'] === 'sent' && $offer->customer?->email) {
+            if (! $offer->token) {
+                $offer->update(['token' => Str::random(64)]);
+            }
+            $offer->load('items');
+            Mail::to($offer->customer->email)->queue(new OfferMail($offer));
+        }
+
         $offer->load(['items.product', 'customer']);
 
         $response = $offer->toArray();
@@ -258,6 +271,48 @@ class OfferController extends Controller
         $offer->delete();
 
         return response()->json(['message' => 'Offer deleted.']);
+    }
+
+    public function send(Request $request, Offer $offer): JsonResponse
+    {
+        $tenant = $request->user()->tenant;
+
+        if ($offer->tenant_id !== $tenant->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if (in_array($offer->status, ['accepted', 'declined'])) {
+            return response()->json([
+                'message' => "Cannot send an offer that is already {$offer->status}.",
+            ], 422);
+        }
+
+        if (! $offer->customer?->email) {
+            return response()->json([
+                'message' => 'Offer has no customer with an email address.',
+            ], 422);
+        }
+
+        if (! $offer->token) {
+            $offer->update(['token' => Str::random(64)]);
+        }
+
+        $offer->update(['status' => 'sent']);
+        $offer->load(['items', 'customer']);
+
+        // Ensure PDF exists before sending
+        $pdfService = app(\App\Services\OfferPdfService::class);
+        if (!$offer->pdf_path || !\Storage::disk('public')->exists($offer->pdf_path)) {
+            $pdfService->generate($offer);
+        }
+
+        // DEBUG: Send synchronously to test logging and attachment
+        Mail::to($offer->customer->email)->send(new OfferMail($offer));
+
+        return response()->json([
+            'message' => 'Offer sent to ' . $offer->customer->email,
+            'offer' => $offer,
+        ]);
     }
 
     public function convertToInvoice(Request $request, Offer $offer): JsonResponse
@@ -358,42 +413,13 @@ class OfferController extends Controller
 
         $offer->loadMissing('items');
 
-        $result = DB::transaction(function () use ($offer, $tenant, $request) {
-            // 1. Create Order
-            $orderNumber = 'ORD-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-            $order = Order::create([
-                'tenant_id'      => $tenant->id,
-                'order_number'   => $orderNumber,
-                'customer_id'    => $offer->customer_id,
-                'status'         => 'pending',
-                'subtotal'       => $offer->subtotal,
-                'tax_total'      => $offer->tax_total,
-                'total'          => $offer->total,
-                'currency'       => $offer->currency,
-                'payment_status' => 'pending',
-            ]);
-
-            foreach ($offer->items as $item) {
-                OrderItem::create([
-                    'order_id'    => $order->id,
-                    'product_id'  => $item->product_id,
-                    'description' => $item->description,
-                    'quantity'    => $item->quantity,
-                    'unit_price'  => $item->unit_price,
-                    'tax_rate'    => $item->tax_rate,
-                    'line_total'  => $item->line_total,
-                ]);
-            }
-
-            // 2. Create Invoice linked to the order
+        $invoice = DB::transaction(function () use ($offer, $tenant, $request) {
             $invoiceNumber = 'INV-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
             $invoice = Invoice::create([
                 'tenant_id'      => $tenant->id,
                 'invoice_number' => $invoiceNumber,
                 'customer_id'    => $offer->customer_id,
-                'order_id'       => $order->id,
                 'status'         => 'draft',
                 'issue_date'     => now()->toDateString(),
                 'due_date'       => now()->addDays(30)->toDateString(),
@@ -416,19 +442,19 @@ class OfferController extends Controller
                 ]);
             }
 
-            // 3. Mark offer as accepted and link the invoice
             $offer->update([
                 'status'     => 'accepted',
                 'invoice_id' => $invoice->id,
             ]);
 
-            return compact('order', 'invoice');
+            return $invoice;
         });
 
+        $invoice->load('items');
+
         return response()->json([
-            'message' => 'Offer accepted. Order and invoice have been created.',
-            'order'   => $result['order']->load('items'),
-            'invoice' => $result['invoice']->load('items'),
+            'message' => 'Offer accepted. Invoice has been created.',
+            'invoice' => $invoice,
         ], 201);
     }
 }

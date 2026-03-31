@@ -57,6 +57,16 @@ services:
     networks:
       - easyrp
 
+  mailpit:
+    image: axllent/mailpit
+    container_name: easyrp_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # Web UI
+      - "2525:1025"   # SMTP
+    networks:
+      - easyrp
+
 networks:
   easyrp:
     driver: bridge

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\OfferResponseController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeatureController;
@@ -24,6 +26,11 @@ use Illuminate\Support\Facades\Route;
 // Public auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
+Route::post('/reset-password', [PasswordResetController::class, 'reset']);
+
+// Public offer response (accept/decline via email link)
+Route::post('/offers/{offer}/respond', [OfferResponseController::class, 'respond']);
 
 // Public tenant resolve
 Route::get('/tenants/resolve/{subdomain}', [TenantController::class, 'resolve']);
@@ -76,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Invoices
         Route::apiResource('invoices', InvoiceController::class);
         Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
+        Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
 
         // Payments
         Route::get('/payments', [PaymentController::class, 'index']);
@@ -93,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Offers
         Route::apiResource('offers', OfferController::class);
+        Route::post('/offers/{offer}/send', [OfferController::class, 'send']);
         Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
         Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
         Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);

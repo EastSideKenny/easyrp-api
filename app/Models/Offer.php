@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Storage;
     'notes',
     'invoice_id',
     'pdf_path',
+    'token',
     'created_by',
 ])]
 class Offer extends Model

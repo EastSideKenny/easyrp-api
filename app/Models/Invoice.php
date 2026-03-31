@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['tenant_id', 'invoice_number', 'customer_id', 'order_id', 'status', 'issue_date', 'due_date', 'subtotal', 'tax_total', 'total', 'currency', 'created_by'])]
+#[Fillable(['tenant_id', 'invoice_number', 'customer_id', 'status', 'issue_date', 'due_date', 'subtotal', 'tax_total', 'total', 'currency', 'pdf_path', 'created_by'])]
 class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
@@ -42,10 +42,7 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
+
 
     public function creator(): BelongsTo
     {
