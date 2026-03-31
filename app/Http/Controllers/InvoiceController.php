@@ -8,11 +8,14 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\StockMovement;
+use App\Services\InvoicePdfService;
 use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class InvoiceController extends Controller
 {
@@ -259,5 +262,29 @@ class InvoiceController extends Controller
 
 
         return response()->json(['message' => 'Invoice sent to customer.']);
+    }
+
+    /**
+     * Download the invoice PDF.
+     */
+    public function pdf(Request $request, Invoice $invoice, InvoicePdfService $pdfService): Response
+    {
+        $tenant = $request->user()->tenant;
+
+        if ($invoice->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        if (! $invoice->pdf_path || ! Storage::disk('public')->exists($invoice->pdf_path)) {
+            $invoice = $pdfService->generate($invoice);
+        }
+
+        $contents = Storage::disk('public')->get($invoice->pdf_path);
+        $filename = $invoice->invoice_number . '.pdf';
+
+        return response($contents, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"{$filename}\"",
+        ]);
     }
 }
