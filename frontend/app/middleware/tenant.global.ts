@@ -34,6 +34,17 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // Skip the tenant error page itself to avoid redirect loops
     if (to.path === '/tenant-error') return
 
+    // ── 0. Token hand-off from root-domain login redirect ──
+    // When a user logs in on the root domain and gets redirected to their
+    // tenant subdomain, the token is passed via _token query parameter
+    // because cross-subdomain cookies are unreliable on localhost.
+    if (to.query._token) {
+        const { setToken } = useAuth()
+        setToken(to.query._token as string)
+        const { _token, ...rest } = to.query
+        return navigateTo({ path: to.path, query: rest }, { replace: true })
+    }
+
     const publicRoute = isPublicRoute(to.path)
 
     // ── 1a. Resolve tenant context early so we can skip unnecessary auth init ──

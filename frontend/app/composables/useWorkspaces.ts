@@ -49,7 +49,7 @@ export function useWorkspaces() {
             const { getToken } = useAuth()
             const token = getToken()
             const path = token
-                ? `/auth/callback?token=${encodeURIComponent(token)}`
+                ? `/dashboard?_token=${encodeURIComponent(token)}`
                 : '/dashboard'
             goToWorkspace(user.tenant.subdomain, path)
         } else {
