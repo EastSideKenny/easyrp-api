@@ -87,8 +87,23 @@ export function useSubscription() {
             subscriptionLoading.value = true
             const data = await authFetch('/api/subscriptions')
 
-            // Normalise: backend returns a single object, but stay defensive.
-            if (Array.isArray(data)) {
+            // Backend returns { subscriptions: [...], usage: {...}, trial_ends_at, status }
+            if (data?.subscriptions && Array.isArray(data.subscriptions)) {
+                const subs = data.subscriptions as TenantSubscription[]
+                const active = subs.find(
+                    (s) => s.status === 'trialing' || s.status === 'active'
+                ) ?? subs[0] ?? null
+
+                if (active) {
+                    subscription.value = {
+                        ...active,
+                        usage: data.usage ?? active.usage,
+                        trial_ends_at: data.trial_ends_at ?? active.trial_ends_at,
+                    }
+                } else {
+                    subscription.value = null
+                }
+            } else if (Array.isArray(data)) {
                 subscription.value =
                     (data as TenantSubscription[]).find(
                         (s) => s.status === 'trialing' || s.status === 'active'
