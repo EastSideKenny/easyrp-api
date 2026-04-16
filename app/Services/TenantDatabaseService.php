@@ -63,6 +63,17 @@ class TenantDatabaseService
         ]);
     }
 
+    public static function tenantIdFromSearchPath(?string $searchPath): ?int
+    {
+        foreach (explode(',', (string) $searchPath) as $schema) {
+            if (preg_match('/^tenant_(\d+)$/', trim($schema), $matches)) {
+                return (int) $matches[1];
+            }
+        }
+
+        return null;
+    }
+
     private static function quoteIdentifier(string $identifier): string
     {
         return '"' . str_replace('"', '""', $identifier) . '"';

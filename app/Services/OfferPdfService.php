@@ -56,14 +56,8 @@ class OfferPdfService
 
     private function resolveTenantId(): ?int
     {
-        $searchPath = (string) config('database.connections.tenant.search_path', '');
-
-        foreach (explode(',', $searchPath) as $schema) {
-            if (preg_match('/^tenant_(\d+)$/', trim($schema), $matches)) {
-                return (int) $matches[1];
-            }
-        }
-
-        return null;
+        return TenantDatabaseService::tenantIdFromSearchPath(
+            config('database.connections.tenant.search_path')
+        );
     }
 }
