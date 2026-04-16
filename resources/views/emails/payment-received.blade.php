@@ -19,5 +19,5 @@ No further action is required. If you need a copy of your invoice, it was includ
 Thank you for your prompt payment!
 
 Regards,<br>
-{{ config('app.name') }}
+{{ $tenantName }}
 @endcomponent

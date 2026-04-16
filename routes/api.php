@@ -8,6 +8,8 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeatureController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\TenantSettingsController;
+use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\OrderController;
@@ -82,6 +84,19 @@ Route::middleware('auth:sanctum')->group(function () {
         // Subscriptions
         Route::get('/subscriptions', [SubscriptionController::class, 'index']);
         Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
+
+        // Tenant settings (owner/admin only, accessible even with expired trial)
+        Route::middleware('tenant.admin')->group(function () {
+            Route::get('/settings/branding', [TenantSettingsController::class, 'show']);
+            Route::patch('/settings/branding', [TenantSettingsController::class, 'update']);
+            Route::post('/settings/branding/logo', [TenantSettingsController::class, 'uploadLogo']);
+            Route::delete('/settings/branding/logo', [TenantSettingsController::class, 'deleteLogo']);
+
+            Route::get('/settings/users', [UserManagementController::class, 'index']);
+            Route::post('/settings/users', [UserManagementController::class, 'store']);
+            Route::patch('/settings/users/{user}', [UserManagementController::class, 'update']);
+            Route::delete('/settings/users/{user}', [UserManagementController::class, 'destroy']);
+        });
 
         // All routes below require an active subscription / non-expired trial
         Route::middleware('trial.active')->group(function () {

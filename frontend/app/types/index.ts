@@ -13,6 +13,8 @@ export interface Tenant {
     team_size?: string | null
     modules?: string[] | null
     currency?: string | null
+    theme?: string | null
+    logo_url?: string | null
 }
 
 export type UserRole = 'owner' | 'admin' | 'staff'
@@ -242,6 +244,17 @@ export interface OfferItem {
     updated_at?: string
 }
 
+export interface OfferResponse {
+    id: number
+    offer_id: number
+    action: 'accepted' | 'declined'
+    ip_address: string
+    user_agent: string
+    responded_at: string
+    created_at: string
+    updated_at: string
+}
+
 export interface Offer {
     id: number
     offer_number: string
@@ -260,6 +273,7 @@ export interface Offer {
     pdf_url: string | null
     created_by: number | null
     items: OfferItem[]
+    responses?: OfferResponse[]
     created_at: string
     updated_at: string
 }

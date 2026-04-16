@@ -23,5 +23,5 @@ If you have any questions regarding this invoice, please don't hesitate to reply
 Thank you for your business!
 
 Regards,<br>
-{{ config('app.name') }}
+{{ $tenantName }}
 @endcomponent

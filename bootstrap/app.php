@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'trial.active' => \App\Http\Middleware\EnsureTrialNotExpired::class,
             'tenant.schema' => \App\Http\Middleware\SetTenantSchema::class,
             'site.admin' => \App\Http\Middleware\EnsureSiteAdmin::class,
+            'tenant.admin' => \App\Http\Middleware\EnsureTenantAdmin::class,
         ]);
 
         // Ensure tenant schema is set before route model binding resolves models

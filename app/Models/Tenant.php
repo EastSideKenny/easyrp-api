@@ -6,16 +6,26 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'slug', 'subdomain', 'industry', 'team_size', 'modules', 'currency', 'plan_id', 'is_active'])]
+#[Fillable(['name', 'slug', 'subdomain', 'industry', 'team_size', 'modules', 'currency', 'plan_id', 'is_active', 'logo_path', 'theme'])]
 class Tenant extends Model
 {
+    protected $appends = ['logo_url'];
+
     protected function casts(): array
     {
         return [
             'modules' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo_path
+            ? Storage::disk('public')->url($this->logo_path)
+            : null;
     }
 
     public function plan(): BelongsTo

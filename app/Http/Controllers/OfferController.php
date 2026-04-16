@@ -38,7 +38,7 @@ class OfferController extends Controller
 
     public function show(Request $request, Offer $offer): JsonResponse
     {
-        $offer->load(['items.product', 'customer', 'invoice:id,invoice_number']);
+        $offer->load(['items.product', 'customer', 'invoice:id,invoice_number', 'responses']);
 
         return response()->json($offer);
     }

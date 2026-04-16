@@ -2,17 +2,22 @@
 
 namespace App\Mail\Concerns;
 
+use App\Models\Tenant;
 use App\Services\TenantDatabaseService;
 
 trait SetsTenantSchema
 {
     public int $tenantId;
+    public string $tenantName;
 
     public function initializeSetsTenantSchema(): void
     {
         $this->tenantId = auth()->user()?->tenant_id
             ?? $this->tenantId
             ?? 0;
+
+        $tenant = $this->tenantId ? Tenant::find($this->tenantId) : null;
+        $this->tenantName = $tenant?->name ?? config('app.name');
     }
 
     /**

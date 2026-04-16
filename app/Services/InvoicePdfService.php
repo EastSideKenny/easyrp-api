@@ -23,9 +23,15 @@ class InvoicePdfService
         $tenant ??= (object) ['name' => config('app.name')];
         $tenantPath = $tenantId ? (string) $tenantId : 'shared';
 
+        $logoPath = null;
+        if ($tenant instanceof Tenant && $tenant->logo_path && Storage::disk('public')->exists($tenant->logo_path)) {
+            $logoPath = Storage::disk('public')->path($tenant->logo_path);
+        }
+
         $pdf = Pdf::loadView('pdf.invoice', [
             'invoice'  => $invoice,
             'tenant' => $tenant,
+            'logoPath' => $logoPath,
         ]);
 
         $pdf->setPaper('a4', 'portrait');

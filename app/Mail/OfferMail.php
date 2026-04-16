@@ -35,7 +35,7 @@ class OfferMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Offer {$this->offer->offer_number} from " . config('app.name'),
+            subject: "Offer {$this->offer->offer_number} from {$this->tenantName}",
         );
     }
 

@@ -26,5 +26,5 @@ We'll keep you updated on the progress of your order. If you have any questions,
 Thank you for your business!
 
 Regards,<br>
-{{ config('app.name') }}
+{{ $tenantName }}
 @endcomponent

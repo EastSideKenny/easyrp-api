@@ -53,6 +53,15 @@ class OfferResponseController extends Controller
             $status = $request->action === 'accept' ? 'accepted' : 'declined';
             $offer->update(['status' => $status]);
 
+            // Record the response for audit/proof purposes
+            \App\Models\OfferResponse::create([
+                'offer_id' => $offer->id,
+                'action' => $status,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'responded_at' => now(),
+            ]);
+
             $invoice = null;
             if ($status === 'accepted' && !$offer->invoice_id) {
                 $invoice = DB::connection('tenant')->transaction(function () use ($offer) {

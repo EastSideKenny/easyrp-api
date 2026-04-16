@@ -65,10 +65,10 @@ class TenantController extends Controller
             'trial_ends_at' => now()->addDays(14),
         ]);
 
-        // Associate user with tenant and set role
+        // Associate user with tenant as owner
         $user->update([
             'tenant_id' => $tenant->id,
-            'role'      => $validated['role'] ?? 'owner',
+            'role'      => 'owner',
         ]);
 
         $user->load('tenant');

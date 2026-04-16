@@ -36,6 +36,12 @@
             vertical-align: top;
         }
 
+        .company-logo {
+            max-height: 48px;
+            max-width: 180px;
+            margin-bottom: 6px;
+        }
+
         .company-name {
             font-size: 22px;
             font-weight: 700;
@@ -221,6 +227,9 @@
         <table class="layout-table">
             <tr>
                 <td style="width:50%;">
+                    @if(!empty($logoPath))
+                    <img src="{{ $logoPath }}" alt="{{ $tenant->name }}" class="company-logo">
+                    @endif
                     <div class="company-name">{{ $tenant->name }}</div>
                 </td>
                 <td style="width:50%; text-align:right;">

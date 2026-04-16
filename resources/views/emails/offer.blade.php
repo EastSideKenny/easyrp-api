@@ -29,5 +29,5 @@ If you have any questions or would like to discuss modifications, simply reply t
 We look forward to working with you!
 
 Regards,<br>
-{{ config('app.name') }}
+{{ $tenantName }}
 @endcomponent

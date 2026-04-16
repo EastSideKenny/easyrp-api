@@ -29,7 +29,7 @@ class InvoiceMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Invoice {$this->invoice->invoice_number} from " . config('app.name'),
+            subject: "Invoice {$this->invoice->invoice_number} from {$this->tenantName}",
         );
     }
 

@@ -67,4 +67,9 @@ class Offer extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function responses(): HasMany
+    {
+        return $this->hasMany(OfferResponse::class);
+    }
 }
