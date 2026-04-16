@@ -9,19 +9,24 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use App\Mail\Concerns\SetsTenantSchema;
 use App\Services\OfferPdfService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Queue\SerializesModels;
 
 class OfferMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SetsTenantSchema, SerializesModels {
+        SetsTenantSchema::__unserialize insteadof SerializesModels;
+        SerializesModels::__unserialize as unserializeFromSerializesModels;
+    }
 
     public string $acceptUrl;
     public string $declineUrl;
 
     public function __construct(public Offer $offer)
     {
+        $this->initializeSetsTenantSchema();
         $frontendUrl = config('app.frontend_url');
         $this->acceptUrl = "{$frontendUrl}/offers/{$offer->id}/respond?action=accept&token={$offer->token}";
         $this->declineUrl = "{$frontendUrl}/offers/{$offer->id}/respond?action=decline&token={$offer->token}";

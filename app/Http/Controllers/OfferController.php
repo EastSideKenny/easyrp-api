@@ -280,8 +280,7 @@ class OfferController extends Controller
             $pdfService->generate($offer);
         }
 
-        // DEBUG: Send synchronously to test logging and attachment
-        Mail::to($offer->customer->email)->send(new OfferMail($offer));
+        Mail::to($offer->customer->email)->queue(new OfferMail($offer));
 
         return response()->json([
             'message' => 'Offer sent to ' . $offer->customer->email,

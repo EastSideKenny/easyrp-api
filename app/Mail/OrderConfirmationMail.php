@@ -8,13 +8,20 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use App\Mail\Concerns\SetsTenantSchema;
 use Illuminate\Queue\SerializesModels;
 
 class OrderConfirmationMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SetsTenantSchema, SerializesModels {
+        SetsTenantSchema::__unserialize insteadof SerializesModels;
+        SerializesModels::__unserialize as unserializeFromSerializesModels;
+    }
 
-    public function __construct(public Order $order) {}
+    public function __construct(public Order $order)
+    {
+        $this->initializeSetsTenantSchema();
+    }
 
     public function envelope(): Envelope
     {

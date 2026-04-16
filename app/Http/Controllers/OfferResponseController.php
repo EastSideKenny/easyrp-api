@@ -71,7 +71,7 @@ class OfferResponseController extends Controller
                             'invoice_id' => $invoice->id,
                             'product_id' => $item->product_id,
                             'description' => $item->description,
-                            'quantity' => $item->quantity,
+                            'quantity' => (int) $item->quantity,
                             'unit_price' => $item->unit_price,
                             'tax_rate' => $item->tax_rate,
                             'line_total' => $item->line_total,

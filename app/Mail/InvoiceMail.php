@@ -9,15 +9,22 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use App\Mail\Concerns\SetsTenantSchema;
 use App\Services\InvoicePdfService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Queue\SerializesModels;
 
 class InvoiceMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SetsTenantSchema, SerializesModels {
+        SetsTenantSchema::__unserialize insteadof SerializesModels;
+        SerializesModels::__unserialize as unserializeFromSerializesModels;
+    }
 
-    public function __construct(public Invoice $invoice) {}
+    public function __construct(public Invoice $invoice)
+    {
+        $this->initializeSetsTenantSchema();
+    }
 
     public function envelope(): Envelope
     {
