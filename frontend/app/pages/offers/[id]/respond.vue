@@ -89,6 +89,37 @@
                     </p>
                 </div>
                 <div
+                    v-else-if="result === 'expired'"
+                    class="flex flex-col items-center text-center py-8"
+                >
+                    <div
+                        class="w-14 h-14 rounded-full bg-warning/10 flex items-center justify-center mb-4"
+                    >
+                        <svg
+                            class="w-7 h-7 text-warning"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                    </div>
+                    <h1
+                        class="text-2xl font-extrabold tracking-tight text-text"
+                    >
+                        Offer expired
+                    </h1>
+                    <p class="mt-1.5 text-sm text-text-secondary">
+                        This offer has expired. Please contact the sender for a
+                        new offer.
+                    </p>
+                </div>
+                <div
                     v-else-if="result === 'invalid_token'"
                     class="flex flex-col items-center text-center py-8"
                 >
@@ -163,9 +194,9 @@ const offerId = route.params.id as string;
 const action = (route.query.action as string) ?? "";
 const token = (route.query.token as string) ?? "";
 const loading = ref(true);
-const result = ref<"success" | "already_responded" | "invalid_token" | "error">(
-    "error",
-);
+const result = ref<
+    "success" | "already_responded" | "expired" | "invalid_token" | "error"
+>("error");
 const errorMessage = ref("Something went wrong. Please try again later.");
 const actionLabel = computed(() =>
     action === "accept" ? "accepted" : "declined",
@@ -189,11 +220,12 @@ onMounted(async () => {
     } catch (err: any) {
         const status = err?.response?.status;
         const data = err?.response?._data;
-        if (status === 422) {
+        if (status === 422 && data?.reason === "expired") {
+            result.value = "expired";
+        } else if (status === 422) {
             result.value = "already_responded";
             errorMessage.value =
-                data?.message ||
-                "This offer has already been responded to or has expired.";
+                data?.message || "This offer has already been responded to.";
         } else if (status === 403) {
             result.value = "invalid_token";
         } else {

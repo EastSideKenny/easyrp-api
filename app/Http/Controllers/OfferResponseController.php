@@ -36,15 +36,18 @@ class OfferResponseController extends Controller
                 return response()->json(['message' => 'Invalid or expired token.'], 403);
             }
 
+            if ($offer->status === 'expired' || ($offer->valid_until && now()->greaterThan($offer->valid_until))) {
+                if ($offer->status !== 'expired') {
+                    $offer->update(['status' => 'expired']);
+                }
+                return response()->json(['message' => 'This offer has expired.', 'reason' => 'expired'], 422);
+            }
+
             if (in_array($offer->status, ['accepted', 'declined'])) {
                 return response()->json([
                     'message' => "This offer has already been {$offer->status}.",
+                    'reason' => 'already_responded',
                 ], 422);
-            }
-
-            if ($offer->valid_until && now()->greaterThan($offer->valid_until)) {
-                $offer->update(['status' => 'expired']);
-                return response()->json(['message' => 'This offer has expired.'], 422);
             }
 
             $status = $request->action === 'accept' ? 'accepted' : 'declined';
