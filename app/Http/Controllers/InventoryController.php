@@ -10,10 +10,7 @@ class InventoryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        $query = Product::where('tenant_id', $tenant->id)
-            ->where('track_inventory', true)
+        $query = Product::where('track_inventory', true)
             ->where('is_active', true);
 
         // Search by product name or SKU

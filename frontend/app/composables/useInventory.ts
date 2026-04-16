@@ -48,7 +48,6 @@ export function useInventory() {
                 const inv = res as InventoryResponse
                 stockItems.value = inv.items.map((i) => ({
                     id: i.id,
-                    tenant_id: 0,
                     name: i.product,
                     description: '',
                     sku: i.sku,

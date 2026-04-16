@@ -11,10 +11,7 @@ class PaymentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        $query = Payment::where('tenant_id', $tenant->id)
-            ->with('invoice:id,invoice_number,customer_id,total', 'invoice.customer:id,name');
+        $query = Payment::with('invoice:id,invoice_number,customer_id,total', 'invoice.customer:id,name');
 
         if ($request->filled('customer_id')) {
             $query->whereHas('invoice', function ($q) use ($request) {
@@ -29,33 +26,23 @@ class PaymentController extends Controller
 
     public function show(Request $request, Payment $payment): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($payment->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         return response()->json($payment->load('invoice:id,invoice_number,customer_id,total,due_date', 'invoice.customer:id,name'));
     }
 
     public function store(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
         $validated = $request->validate([
-            'invoice_id' => ['required', 'exists:invoices,id'],
+            'invoice_id' => ['required', 'exists:tenant.invoices,id'],
             'amount' => ['required', 'numeric', 'min:0'],
             'payment_method' => ['sometimes', 'in:cash,bank,stripe'],
             'transaction_reference' => ['nullable', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],
         ]);
 
-        $payment = Payment::create(array_merge($validated, ['tenant_id' => $tenant->id]));
+        $payment = Payment::create($validated);
 
         // Auto-update invoice status to 'paid' when fully paid
-        $invoice = Invoice::where('id', $validated['invoice_id'])
-            ->where('tenant_id', $tenant->id)
-            ->firstOrFail();
+        $invoice = Invoice::findOrFail($validated['invoice_id']);
 
         $totalPaid = $invoice->payments()->sum('amount');
 

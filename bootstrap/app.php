@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'trial.active' => \App\Http\Middleware\EnsureTrialNotExpired::class,
+            'tenant.schema' => \App\Http\Middleware\SetTenantSchema::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

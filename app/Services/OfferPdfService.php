@@ -15,19 +15,22 @@ class OfferPdfService
     public function generate(Offer $offer): Offer
     {
         // Ensure relationships needed by the template are loaded.
-        $offer->loadMissing(['tenant', 'customer', 'items.product']);
+        $offer->loadMissing(['customer', 'items.product']);
+
+        // Get tenant from auth context for file path organization
+        $tenantId = auth()->user()?->tenant_id ?? 'shared';
 
         $pdf = Pdf::loadView('pdf.offer', [
             'offer'  => $offer,
-            'tenant' => $offer->tenant,
+            'tenant' => auth()->user()?->tenant,
         ]);
 
         $pdf->setPaper('a4', 'portrait');
 
-        $relativePath = "offers/{$offer->tenant_id}/{$offer->offer_number}.pdf";
+        $relativePath = "offers/{$tenantId}/{$offer->offer_number}.pdf";
 
         // Ensure the directory exists.
-        Storage::disk('public')->makeDirectory("offers/{$offer->tenant_id}");
+        Storage::disk('public')->makeDirectory("offers/{$tenantId}");
 
         Storage::disk('public')->put($relativePath, $pdf->output());
 

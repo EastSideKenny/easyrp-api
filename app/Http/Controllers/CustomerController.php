@@ -13,25 +13,15 @@ class CustomerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
         $perPage = $request->integer('per_page', 25);
 
         return response()->json(
-            Customer::where('tenant_id', $tenant->id)
-                ->latest()
-                ->paginate($perPage)
+            Customer::latest()->paginate($perPage)
         );
     }
 
     public function show(Request $request, Customer $customer): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($customer->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         return response()->json($customer);
     }
 
@@ -62,19 +52,13 @@ class CustomerController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $customer = Customer::create(array_merge($validated, ['tenant_id' => $tenant->id]));
+        $customer = Customer::create($validated);
 
         return response()->json($customer, 201);
     }
 
     public function update(Request $request, Customer $customer): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($customer->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -95,14 +79,8 @@ class CustomerController extends Controller
 
     public function destroy(Request $request, Customer $customer): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($customer->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
-        $hasOrders   = Order::where('customer_id', $customer->id)->where('tenant_id', $tenant->id)->exists();
-        $hasInvoices = Invoice::where('customer_id', $customer->id)->where('tenant_id', $tenant->id)->exists();
+        $hasOrders   = Order::where('customer_id', $customer->id)->exists();
+        $hasInvoices = Invoice::where('customer_id', $customer->id)->exists();
 
         if ($hasOrders || $hasInvoices) {
             return response()->json([

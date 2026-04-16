@@ -11,13 +11,10 @@ class StockMovementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
         $perPage = $request->integer('per_page', 25);
 
         return response()->json(
-            StockMovement::where('tenant_id', $tenant->id)
-                ->with('product:id,name')
+            StockMovement::with('product:id,name')
                 ->latest()
                 ->paginate($perPage)
         );
@@ -25,32 +22,22 @@ class StockMovementController extends Controller
 
     public function show(Request $request, StockMovement $stockMovement): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($stockMovement->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         return response()->json($stockMovement->load('product:id,name'));
     }
 
     public function store(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
         $validated = $request->validate([
-            'product_id' => ['required', 'exists:products,id'],
+            'product_id' => ['required', 'exists:tenant.products,id'],
             'type' => ['required', 'in:sale,manual_adjustment'],
             'quantity_change' => ['required', 'integer'],
             'reference_id' => ['nullable', 'integer'],
         ]);
 
-        $movement = StockMovement::create(array_merge($validated, ['tenant_id' => $tenant->id]));
+        $movement = StockMovement::create($validated);
 
         // Update the product's stock_quantity
-        $product = Product::where('id', $validated['product_id'])
-            ->where('tenant_id', $tenant->id)
-            ->firstOrFail();
+        $product = Product::findOrFail($validated['product_id']);
 
         $change = $validated['quantity_change'];
 

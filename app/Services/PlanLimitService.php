@@ -50,6 +50,7 @@ class PlanLimitService
 
     /**
      * Get the current count of a resource for the tenant.
+     * Uses the tenant schema connection — schema is already switched.
      */
     public function getUsage(Tenant $tenant, string $featureCode): int
     {
@@ -59,7 +60,7 @@ class PlanLimitService
             return 0;
         }
 
-        return $model::where('tenant_id', $tenant->id)->count();
+        return $model::count();
     }
 
     /**

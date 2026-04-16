@@ -15,19 +15,22 @@ class InvoicePdfService
     public function generate(Invoice $invoice): Invoice
     {
         // Ensure relationships needed by the template are loaded.
-        $invoice->loadMissing(['tenant', 'customer', 'items.product']);
+        $invoice->loadMissing(['customer', 'items.product']);
+
+        // Get tenant from auth context for file path organization
+        $tenantId = auth()->user()?->tenant_id ?? 'shared';
 
         $pdf = Pdf::loadView('pdf.invoice', [
             'invoice'  => $invoice,
-            'tenant' => $invoice->tenant,
+            'tenant' => auth()->user()?->tenant,
         ]);
 
         $pdf->setPaper('a4', 'portrait');
 
-        $relativePath = "invoices/{$invoice->tenant_id}/{$invoice->invoice_number}.pdf";
+        $relativePath = "invoices/{$tenantId}/{$invoice->invoice_number}.pdf";
 
         // Ensure the directory exists.
-        Storage::disk('public')->makeDirectory("invoices/{$invoice->tenant_id}");
+        Storage::disk('public')->makeDirectory("invoices/{$tenantId}");
 
         Storage::disk('public')->put($relativePath, $pdf->output());
 

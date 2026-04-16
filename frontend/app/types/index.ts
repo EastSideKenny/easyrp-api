@@ -105,7 +105,6 @@ export type ProductType = 'physical' | 'service'
 
 export interface Product {
     id: number
-    tenant_id: number
     name: string
     description: string
     sku: string
@@ -139,7 +138,6 @@ export interface ProductFormData {
 
 export interface ProductCategory {
     id: number
-    tenant_id: number
     name: string
     created_at: string
     updated_at: string
@@ -149,7 +147,6 @@ export interface ProductCategory {
 
 export interface Customer {
     id: number
-    tenant_id: number
     name: string
     email: string
     phone: string | null
@@ -197,7 +194,6 @@ export interface InvoiceItem {
 
 export interface Invoice {
     id: number
-    tenant_id: number
     invoice_number: string
     customer_id: number
     customer?: Customer
@@ -247,7 +243,6 @@ export interface OfferItem {
 
 export interface Offer {
     id: number
-    tenant_id: number
     offer_number: string
     customer_id: number
     customer?: Customer
@@ -283,7 +278,6 @@ export type PaymentMethod = 'cash' | 'bank' | 'stripe'
 
 export interface Payment {
     id: number
-    tenant_id: number
     invoice_id: number
     invoice?: Invoice
     amount: number
@@ -308,7 +302,6 @@ export type StockMovementType = 'sale' | 'manual_adjustment'
 
 export interface StockMovement {
     id: number
-    tenant_id: number
     product_id: number
     product?: Product
     product_name?: string
@@ -336,7 +329,6 @@ export type OrderStatus = 'pending' | 'paid' | 'done' | 'canceled'
 
 export interface Order {
     id: number
-    tenant_id: number
     order_number: string
     customer_id: number | null
     customer?: Customer
@@ -385,7 +377,6 @@ export interface OrderItemFormData {
 
 export interface WebshopSettings {
     id: number
-    tenant_id: number
     store_name: string | null
     primary_color: string | null
     currency: string
@@ -402,7 +393,6 @@ export type SetupStep = 'business_info' | 'taxes' | 'product' | 'customer' | 'we
 
 export interface SetupProgress {
     id: number
-    tenant_id: number
     step: SetupStep
     is_completed: boolean
     created_at: string
@@ -492,7 +482,6 @@ import type { Component } from 'vue'
 
 export interface WebshopSetting {
     id: number
-    tenant_id: number
     store_name: string
     primary_color: string
     currency: string

@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['tenant_id', 'invoice_number', 'customer_id', 'status', 'issue_date', 'due_date', 'subtotal', 'tax_total', 'total', 'currency', 'pdf_path', 'created_by'])]
+#[Fillable(['invoice_number', 'customer_id', 'order_id', 'status', 'issue_date', 'due_date', 'subtotal', 'tax_total', 'total', 'currency', 'pdf_path', 'created_by'])]
 class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $connection = 'tenant';
 
     protected function casts(): array
     {
@@ -20,11 +22,6 @@ class Invoice extends Model
             'issue_date' => 'date',
             'due_date' => 'date',
         ];
-    }
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
     }
 
     public function customer(): BelongsTo

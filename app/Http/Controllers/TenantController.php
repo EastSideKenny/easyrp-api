@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Services\TenantDatabaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,7 +24,7 @@ class TenantController extends Controller
             return response()->json([
                 'message' => 'You already have a workspace.',
             ], 409);
-    }
+        }
 
         $validated = $request->validate([
             'name'      => ['required', 'string', 'max:255'],
@@ -51,6 +52,10 @@ class TenantController extends Controller
             'currency'  => strtoupper($validated['currency'] ?? 'USD'),
             'plan_id'   => $plan->id,
         ]);
+
+        // Create and migrate the tenant's database schema
+        TenantDatabaseService::createSchema($tenant);
+        TenantDatabaseService::migrateSchema($tenant);
 
         // Create a 14-day trial subscription on the selected plan
         TenantSubscription::create([

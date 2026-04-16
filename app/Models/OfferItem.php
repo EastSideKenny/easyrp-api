@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['offer_id', 'product_id', 'description', 'quantity', 'unit_price', 'tax_rate', 'line_total'])]
 class OfferItem extends Model
 {
+    protected $connection = 'tenant';
+
     public function offer(): BelongsTo
     {
         return $this->belongsTo(Offer::class);

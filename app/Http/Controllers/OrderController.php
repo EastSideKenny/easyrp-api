@@ -13,10 +13,7 @@ class OrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        $query = Order::where('tenant_id', $tenant->id)
-            ->with('customer:id,name');
+        $query = Order::with('customer:id,name');
 
         if ($request->filled('customer_id')) {
             $query->where('customer_id', $request->integer('customer_id'));
@@ -29,12 +26,6 @@ class OrderController extends Controller
 
     public function show(Request $request, Order $order): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($order->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         $order->load('items', 'customer', 'invoices.payments');
 
         return response()->json($order);
@@ -55,12 +46,12 @@ class OrderController extends Controller
         }
 
         $validated = $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_id' => ['nullable', 'exists:tenant.customers,id'],
             'status' => ['sometimes', 'in:pending,paid,done,canceled'],
             'currency' => ['sometimes', 'string', 'size:3'],
             'payment_status' => ['sometimes', 'in:pending,paid,failed'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['nullable', 'exists:products,id'],
+            'items.*.product_id' => ['nullable', 'exists:tenant.products,id'],
             'items.*.description' => ['nullable', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
@@ -75,9 +66,8 @@ class OrderController extends Controller
         $taxTotal = $items->sum(fn($item) => $item['unit_price'] * $item['quantity'] * (($item['tax_rate'] ?? 0) / 100));
         $total = $subtotal + $taxTotal;
 
-        $order = DB::transaction(function () use ($validated, $tenant, $orderNumber, $subtotal, $taxTotal, $total) {
+        $order = DB::connection('tenant')->transaction(function () use ($validated, $orderNumber, $subtotal, $taxTotal, $total) {
             $order = Order::create([
-                'tenant_id' => $tenant->id,
                 'order_number' => $orderNumber,
                 'customer_id' => $validated['customer_id'] ?? null,
                 'status' => $validated['status'] ?? 'pending',
@@ -108,12 +98,6 @@ class OrderController extends Controller
 
     public function update(Request $request, Order $order): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($order->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         if (in_array($order->status, ['paid', 'done', 'canceled'])) {
             return response()->json([
                 'message' => "Orders with status '{$order->status}' cannot be edited.",
@@ -123,7 +107,7 @@ class OrderController extends Controller
         }
 
         $validated = $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_id' => ['nullable', 'exists:tenant.customers,id'],
             'status' => ['sometimes', 'in:pending,paid,done,canceled'],
             'subtotal' => ['sometimes', 'numeric', 'min:0'],
             'tax_total' => ['sometimes', 'numeric', 'min:0'],
@@ -148,12 +132,6 @@ class OrderController extends Controller
 
     public function destroy(Request $request, Order $order): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($order->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         $order->delete();
 
         return response()->json(['message' => 'Order deleted.']);

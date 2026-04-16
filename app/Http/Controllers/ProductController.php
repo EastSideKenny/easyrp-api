@@ -12,25 +12,15 @@ class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
         $perPage = $request->integer('per_page', 25);
 
         return response()->json(
-            Product::where('tenant_id', $tenant->id)
-                ->latest()
-                ->paginate($perPage)
+            Product::latest()->paginate($perPage)
         );
     }
 
     public function show(Request $request, Product $product): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($product->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         return response()->json($product);
     }
 
@@ -62,19 +52,13 @@ class ProductController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $product = Product::create(array_merge($validated, ['tenant_id' => $tenant->id]));
+        $product = Product::create($validated);
 
         return response()->json($product, 201);
     }
 
     public function update(Request $request, Product $product): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($product->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -96,15 +80,9 @@ class ProductController extends Controller
 
     public function destroy(Request $request, Product $product): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($product->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
-        $inUse = DB::table('order_items')->where('product_id', $product->id)->exists()
-            || DB::table('invoice_items')->where('product_id', $product->id)->exists()
-            || DB::table('offer_items')->where('product_id', $product->id)->exists();
+        $inUse = DB::connection('tenant')->table('order_items')->where('product_id', $product->id)->exists()
+            || DB::connection('tenant')->table('invoice_items')->where('product_id', $product->id)->exists()
+            || DB::connection('tenant')->table('offer_items')->where('product_id', $product->id)->exists();
 
         if ($inUse) {
             return response()->json([
@@ -120,15 +98,9 @@ class ProductController extends Controller
 
     public function inUse(Request $request, Product $product): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($product->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
-        $inUse = DB::table('order_items')->where('product_id', $product->id)->exists()
-            || DB::table('invoice_items')->where('product_id', $product->id)->exists()
-            || DB::table('offer_items')->where('product_id', $product->id)->exists();
+        $inUse = DB::connection('tenant')->table('order_items')->where('product_id', $product->id)->exists()
+            || DB::connection('tenant')->table('invoice_items')->where('product_id', $product->id)->exists()
+            || DB::connection('tenant')->table('offer_items')->where('product_id', $product->id)->exists();
 
         return response()->json(['in_use' => $inUse]);
     }

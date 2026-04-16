@@ -21,10 +21,7 @@ class InvoiceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        $query = Invoice::where('tenant_id', $tenant->id)
-            ->with('customer:id,name');
+        $query = Invoice::with('customer:id,name');
 
         if ($request->filled('customer_id')) {
             $query->where('customer_id', $request->integer('customer_id'));
@@ -37,12 +34,6 @@ class InvoiceController extends Controller
 
     public function show(Request $request, Invoice $invoice): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($invoice->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         $invoice->load('items', 'customer', 'payments');
 
         return response()->json($invoice);
@@ -62,17 +53,16 @@ class InvoiceController extends Controller
             ], 403);
         }
 
-        $tenantId = $tenant->id;
         $currency = $tenant->currency;
 
         $validated = $request->validate([
-            'customer_id' => ['nullable', "exists:customers,id,tenant_id,{$tenantId}"],
-            'order_id' => ['nullable', "exists:orders,id,tenant_id,{$tenantId}"],
+            'customer_id' => ['nullable', 'exists:tenant.customers,id'],
+            'order_id' => ['nullable', 'exists:tenant.orders,id'],
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['nullable', 'exists:products,id'],
+            'items.*.product_id' => ['nullable', 'exists:tenant.products,id'],
             'items.*.description' => ['nullable', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
@@ -87,10 +77,11 @@ class InvoiceController extends Controller
         $taxTotal = $items->sum(fn($item) => $item['unit_price'] * $item['quantity'] * (($item['tax_rate'] ?? 0) / 100));
         $total = $subtotal + $taxTotal;
 
-
-        $invoice = Invoice::create(array_merge($validated, [
-            'tenant_id' => $tenant->id,
+        $invoice = Invoice::create([
             'invoice_number' => $invoiceNumber,
+            'customer_id' => $validated['customer_id'] ?? null,
+            'order_id' => $validated['order_id'] ?? null,
+            'status' => $validated['status'] ?? 'draft',
             'created_by' => $request->user()->id,
             'issue_date' => $validated['issue_date'] ?? now()->toDateString(),
             'due_date' => $validated['due_date'] ?? now()->addDays(30)->toDateString(),
@@ -98,7 +89,7 @@ class InvoiceController extends Controller
             'tax_total' => round($taxTotal, 2),
             'total' => round($total, 2),
             'currency' => $currency ?? 'USD',
-        ]));
+        ]);
 
         foreach ($validated['items'] as $item) {
             InvoiceItem::create([
@@ -112,18 +103,11 @@ class InvoiceController extends Controller
             ]);
         }
 
-
         return response()->json($invoice, 201);
     }
 
     public function update(Request $request, Invoice $invoice): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($invoice->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         if (! in_array($invoice->status, ['draft', 'canceled'])) {
             return response()->json([
                 'message' => 'Only draft or canceled invoices can be edited.',
@@ -132,11 +116,9 @@ class InvoiceController extends Controller
             ], 422);
         }
 
-        $tenantId = $tenant->id;
-
         $validated = $request->validate([
-            'customer_id' => ['nullable', "exists:customers,id,tenant_id,{$tenantId}"],
-            'order_id' => ['nullable', "exists:orders,id,tenant_id,{$tenantId}"],
+            'customer_id' => ['nullable', 'exists:tenant.customers,id'],
+            'order_id' => ['nullable', 'exists:tenant.orders,id'],
             'status' => ['sometimes', 'in:draft,sent,paid,canceled'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
@@ -159,12 +141,6 @@ class InvoiceController extends Controller
 
     public function destroy(Request $request, Invoice $invoice): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($invoice->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         if (! in_array($invoice->status, ['draft', 'canceled'])) {
             return response()->json([
                 'message' => 'Only draft or canceled invoices can be deleted.',
@@ -180,12 +156,6 @@ class InvoiceController extends Controller
 
     public function pay(Request $request, Invoice $invoice): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($invoice->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         if ($invoice->status === 'paid') {
             return response()->json(['message' => 'Invoice is already paid.'], 422);
         }
@@ -195,11 +165,10 @@ class InvoiceController extends Controller
             'transaction_reference' => ['nullable', 'string', 'max:255'],
         ]);
 
-        DB::transaction(function () use ($invoice, $tenant, $validated) {
+        DB::connection('tenant')->transaction(function () use ($invoice, $validated) {
             $invoice->update(['status' => 'paid']);
 
             Payment::create([
-                'tenant_id' => $tenant->id,
                 'invoice_id' => $invoice->id,
                 'amount' => $invoice->total,
                 'payment_method' => $validated['payment_method'] ?? 'cash',
@@ -219,7 +188,6 @@ class InvoiceController extends Controller
                 }
 
                 StockMovement::create([
-                    'tenant_id' => $tenant->id,
                     'product_id' => $product->id,
                     'type' => 'sale',
                     'quantity_change' => -$item->quantity,
@@ -239,17 +207,8 @@ class InvoiceController extends Controller
         return response()->json(['message' => 'Invoice marked as paid.', 'invoice' => $invoice]);
     }
 
-    /**
-     * Send the invoice to the customer via email.
-     */
     public function send(Request $request, Invoice $invoice): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if ($invoice->tenant_id !== $tenant->id) {
-            return response()->json(['message' => 'Not found.'], 404);
-        }
-
         if (! $invoice->customer || ! $invoice->customer->email) {
             return response()->json(['message' => 'Customer email not found.'], 422);
         }
@@ -259,22 +218,11 @@ class InvoiceController extends Controller
         $invoice->update(['status' => 'sent']);
         Mail::to($invoice->customer->email)->queue(new InvoiceMail($invoice));
 
-
-
         return response()->json(['message' => 'Invoice sent to customer.']);
     }
 
-    /**
-     * Download the invoice PDF.
-     */
     public function pdf(Request $request, Invoice $invoice, InvoicePdfService $pdfService): Response
     {
-        $tenant = $request->user()->tenant;
-
-        if ($invoice->tenant_id !== $tenant->id) {
-            abort(404);
-        }
-
         if (! $invoice->pdf_path || ! Storage::disk('public')->exists($invoice->pdf_path)) {
             $invoice = $pdfService->generate($invoice);
         }

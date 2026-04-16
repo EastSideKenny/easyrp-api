@@ -29,14 +29,14 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
-// Public offer response (accept/decline via email link)
-Route::post('/offers/{offer}/respond', [OfferResponseController::class, 'respond']);
+// Public offer response (accept/decline via email link — schema resolved internally)
+Route::post('/offers/respond', [OfferResponseController::class, 'respond']);
 
 // Public tenant resolve
 Route::get('/tenants/resolve/{subdomain}', [TenantController::class, 'resolve']);
 
-// Public storefront routes (no auth required)
-Route::prefix('storefront/{subdomain}')->group(function () {
+// Public storefront routes (no auth required, schema set by subdomain)
+Route::prefix('storefront/{subdomain}')->middleware('tenant.schema')->group(function () {
     Route::get('/settings', [StorefrontController::class, 'settings']);
     Route::get('/products', [StorefrontController::class, 'products']);
     Route::get('/products/{product}', [StorefrontController::class, 'product']);
@@ -51,71 +51,76 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'stats']);
-
-    // Tenant
+    // Tenant creation (no schema yet)
     Route::post('/tenants', [TenantController::class, 'store']);
-    Route::get('/tenant', [TenantController::class, 'show']);
-    Route::patch('/tenant', [TenantController::class, 'update']);
 
     // Plans & Features (public/read-only for auth users)
     Route::get('/plans', [PlanController::class, 'index']);
     Route::get('/plans/{plan}', [PlanController::class, 'show']);
     Route::get('/features', [FeatureController::class, 'index']);
 
-    // Subscriptions
-    Route::get('/subscriptions', [SubscriptionController::class, 'index']);
-    Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
+    // Routes that require tenant schema
+    Route::middleware('tenant.schema')->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'stats']);
 
-    // All routes below require an active subscription / non-expired trial
-    Route::middleware('trial.active')->group(function () {
-        // Products
-        Route::apiResource('products', ProductController::class);
-        Route::get('/products/{product}/in-use', [ProductController::class, 'inUse']);
+        // Tenant
+        Route::get('/tenant', [TenantController::class, 'show']);
+        Route::patch('/tenant', [TenantController::class, 'update']);
 
-        // Product Categories
-        Route::apiResource('product-categories', ProductCategoryController::class);
+        // Subscriptions
+        Route::get('/subscriptions', [SubscriptionController::class, 'index']);
+        Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
 
-        // Customers
-        Route::apiResource('customers', CustomerController::class);
+        // All routes below require an active subscription / non-expired trial
+        Route::middleware('trial.active')->group(function () {
+            // Products
+            Route::apiResource('products', ProductController::class);
+            Route::get('/products/{product}/in-use', [ProductController::class, 'inUse']);
 
-        // Invoices
-        Route::apiResource('invoices', InvoiceController::class);
-        Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
-        Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
-        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+            // Product Categories
+            Route::apiResource('product-categories', ProductCategoryController::class);
 
-        // Payments
-        Route::get('/payments', [PaymentController::class, 'index']);
-        Route::get('/payments/{payment}', [PaymentController::class, 'show']);
-        Route::post('/payments', [PaymentController::class, 'store']);
-        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
+            // Customers
+            Route::apiResource('customers', CustomerController::class);
 
-        // Stock Movements
-        Route::get('/stock-movements', [StockMovementController::class, 'index']);
-        Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
-        Route::post('/stock-movements', [StockMovementController::class, 'store']);
+            // Invoices
+            Route::apiResource('invoices', InvoiceController::class);
+            Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
+            Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
+            Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
 
-        // Inventory
-        Route::get('/inventory', [InventoryController::class, 'index']);
+            // Payments
+            Route::get('/payments', [PaymentController::class, 'index']);
+            Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+            Route::post('/payments', [PaymentController::class, 'store']);
+            Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
 
-        // Offers
-        Route::apiResource('offers', OfferController::class);
-        Route::post('/offers/{offer}/send', [OfferController::class, 'send']);
-        Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
-        Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
-        Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);
+            // Stock Movements
+            Route::get('/stock-movements', [StockMovementController::class, 'index']);
+            Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
+            Route::post('/stock-movements', [StockMovementController::class, 'store']);
 
-        // Orders
-        Route::apiResource('orders', OrderController::class);
+            // Inventory
+            Route::get('/inventory', [InventoryController::class, 'index']);
 
-        // Webshop Settings
-        Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
-        Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
+            // Offers
+            Route::apiResource('offers', OfferController::class);
+            Route::post('/offers/{offer}/send', [OfferController::class, 'send']);
+            Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
+            Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
+            Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);
 
-        // Setup Progress
-        Route::get('/setup-progress', [SetupProgressController::class, 'index']);
-        Route::patch('/setup-progress/{step}', [SetupProgressController::class, 'update']);
-    });
+            // Orders
+            Route::apiResource('orders', OrderController::class);
+
+            // Webshop Settings
+            Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
+            Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
+
+            // Setup Progress
+            Route::get('/setup-progress', [SetupProgressController::class, 'index']);
+            Route::patch('/setup-progress/{step}', [SetupProgressController::class, 'update']);
+        });
+    }); // end tenant.schema
 });

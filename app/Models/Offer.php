@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
-    'tenant_id',
     'offer_number',
     'customer_id',
     'status',
@@ -30,6 +29,8 @@ class Offer extends Model
 {
     use SoftDeletes;
 
+    protected $connection = 'tenant';
+
     protected function casts(): array
     {
         return [
@@ -46,11 +47,6 @@ class Offer extends Model
     }
 
     protected $appends = ['pdf_url'];
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
-    }
 
     public function customer(): BelongsTo
     {
