@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Services\TenantDatabaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,7 +24,7 @@ class TenantController extends Controller
             return response()->json([
                 'message' => 'You already have a workspace.',
             ], 409);
-    }
+        }
 
         $validated = $request->validate([
             'name'      => ['required', 'string', 'max:255'],
@@ -52,6 +53,10 @@ class TenantController extends Controller
             'plan_id'   => $plan->id,
         ]);
 
+        // Create and migrate the tenant's database schema
+        TenantDatabaseService::createSchema($tenant);
+        TenantDatabaseService::migrateSchema($tenant);
+
         // Create a 14-day trial subscription on the selected plan
         TenantSubscription::create([
             'tenant_id'     => $tenant->id,
@@ -60,10 +65,10 @@ class TenantController extends Controller
             'trial_ends_at' => now()->addDays(14),
         ]);
 
-        // Associate user with tenant and set role
+        // Associate user with tenant as owner
         $user->update([
             'tenant_id' => $tenant->id,
-            'role'      => $validated['role'] ?? 'owner',
+            'role'      => 'owner',
         ]);
 
         $user->load('tenant');

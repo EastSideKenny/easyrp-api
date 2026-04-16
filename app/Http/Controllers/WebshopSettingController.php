@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\WebshopSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -9,13 +10,7 @@ class WebshopSettingController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if (! $tenant) {
-            return response()->json(['message' => 'No tenant found.'], 404);
-        }
-
-        $settings = $tenant->webshopSetting;
+        $settings = WebshopSetting::find(1);
 
         if (! $settings) {
             return response()->json(['message' => 'Webshop settings not configured.'], 404);
@@ -26,12 +21,6 @@ class WebshopSettingController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-
-        if (! $tenant) {
-            return response()->json(['message' => 'No tenant found.'], 404);
-        }
-
         $validated = $request->validate([
             'store_name' => ['nullable', 'string', 'max:255'],
             'primary_color' => ['sometimes', 'string', 'max:7'],
@@ -41,10 +30,7 @@ class WebshopSettingController extends Controller
             'stripe_secret_key' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $settings = $tenant->webshopSetting()->updateOrCreate(
-            ['tenant_id' => $tenant->id],
-            $validated
-        );
+        $settings = WebshopSetting::updateOrCreate(['id' => 1], $validated);
 
         return response()->json($settings);
     }

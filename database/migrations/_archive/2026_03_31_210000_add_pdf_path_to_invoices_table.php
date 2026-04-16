@@ -8,15 +8,14 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('invoices', function (Blueprint $table) {
-            $table->foreignId('order_id')->nullable()->after('customer_id')->constrained('orders')->nullOnDelete();
-            $table->index('order_id');
+            $table->string('pdf_path')->nullable()->after('currency');
         });
     }
 
     public function down(): void
     {
         Schema::table('invoices', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('order_id');
+            $table->dropColumn('pdf_path');
         });
     }
 };

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -24,6 +26,8 @@ class AuthController extends Controller
 
         $user = User::create($validated);
         $user->load('tenant');
+
+        Mail::to($user->email)->queue(new WelcomeMail($user));
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

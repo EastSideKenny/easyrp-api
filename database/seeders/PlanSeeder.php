@@ -80,6 +80,24 @@ class PlanSeeder extends Seeder
                     'reports'    => null,
                 ],
             ],
+            [
+                'name'          => 'Exclusive',
+                'slug'          => 'exclusive',
+                'price_monthly' => 0.00,
+                'price_yearly'  => 0.00,
+                'is_active'     => false,
+                'features' => [
+                    'invoices'   => null,
+                    'products'   => null,
+                    'customers'  => null,
+                    'orders'     => null,
+                    'offers'     => null,
+                    'payments'   => null,
+                    'inventory'  => null,
+                    'storefront' => null,
+                    'reports'    => null,
+                ],
+            ],
         ];
 
         foreach ($plans as $planData) {

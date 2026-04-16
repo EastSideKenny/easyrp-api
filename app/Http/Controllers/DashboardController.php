@@ -14,42 +14,34 @@ class DashboardController extends Controller
 {
     public function stats(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-        $tenantId = $tenant->id;
         $now = Carbon::now();
         $startOfMonth = $now->copy()->startOfMonth();
         $thirtyDaysAgo = $now->copy()->subDays(30);
         $sixtyDaysAgo = $now->copy()->subDays(60);
 
         // Revenue (last 30 days) from payments
-        $revenue30d = Payment::where('tenant_id', $tenantId)
-            ->where('paid_at', '>=', $thirtyDaysAgo)
+        $revenue30d = Payment::where('paid_at', '>=', $thirtyDaysAgo)
             ->sum('amount');
 
         // Revenue (previous 30 days) for comparison
-        $revenuePrev30d = Payment::where('tenant_id', $tenantId)
-            ->where('paid_at', '>=', $sixtyDaysAgo)
+        $revenuePrev30d = Payment::where('paid_at', '>=', $sixtyDaysAgo)
             ->where('paid_at', '<', $thirtyDaysAgo)
             ->sum('amount');
 
         // Invoices this month
-        $invoicesThisMonth = Invoice::where('tenant_id', $tenantId)
-            ->where('created_at', '>=', $startOfMonth)
+        $invoicesThisMonth = Invoice::where('created_at', '>=', $startOfMonth)
             ->count();
 
         // Unpaid invoices (outstanding)
-        $unpaidTotal = Invoice::where('tenant_id', $tenantId)
-            ->whereIn('status', ['draft', 'sent'])
+        $unpaidTotal = Invoice::whereIn('status', ['draft', 'sent'])
             ->sum('total');
 
         // New customers this month
-        $newCustomers = Customer::where('tenant_id', $tenantId)
-            ->where('created_at', '>=', $startOfMonth)
+        $newCustomers = Customer::where('created_at', '>=', $startOfMonth)
             ->count();
 
         // Recent invoices (last 5)
-        $recentInvoices = Invoice::where('tenant_id', $tenantId)
-            ->with('customer:id,name')
+        $recentInvoices = Invoice::with('customer:id,name')
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
@@ -63,8 +55,7 @@ class DashboardController extends Controller
             ]);
 
         // Low stock alerts
-        $lowStockProducts = Product::where('tenant_id', $tenantId)
-            ->where('track_inventory', true)
+        $lowStockProducts = Product::where('track_inventory', true)
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->where('stock_quantity', '<=', 0)

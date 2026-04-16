@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Offer {{ $offer->offer_number }}</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,12 +23,23 @@
             padding: 40px 48px;
         }
 
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 36px;
+        .layout-table {
+            width: 100%;
+            border: none;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+        }
+
+        .layout-table td {
+            border: none;
+            padding: 0;
+            vertical-align: top;
+        }
+
+        .company-logo {
+            max-height: 48px;
+            max-width: 180px;
+            margin-bottom: 6px;
         }
 
         .company-name {
@@ -36,24 +48,21 @@
             color: #1a1a2e;
         }
 
-        .doc-label {
-            text-align: right;
-        }
-
-        .doc-label h1 {
+        .doc-title {
             font-size: 28px;
             font-weight: 700;
             color: #4f46e5;
             letter-spacing: 1px;
+            text-align: right;
         }
 
-        .doc-label .offer-number {
+        .doc-number {
             font-size: 13px;
             color: #6b7280;
             margin-top: 4px;
+            text-align: right;
         }
 
-        /* Status badge */
         .status-badge {
             display: inline-block;
             padding: 3px 10px;
@@ -89,19 +98,7 @@
             color: #ea580c;
         }
 
-        /* Meta row */
-        .meta {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 32px;
-            gap: 24px;
-        }
-
-        .meta-box {
-            flex: 1;
-        }
-
-        .meta-box .label {
+        .section-label {
             font-size: 11px;
             font-weight: 600;
             color: #9ca3af;
@@ -110,52 +107,25 @@
             margin-bottom: 6px;
         }
 
-        .meta-box .value {
+        .section-value {
             font-size: 13px;
             color: #1a1a2e;
             line-height: 1.5;
         }
 
-        .meta-box .value strong {
-            font-weight: 600;
-        }
-
-        /* Dates */
-        .dates-row {
-            display: flex;
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .date-item {}
-
-        .date-item .label {
-            font-size: 11px;
-            font-weight: 600;
-            color: #9ca3af;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .date-item .value {
-            font-size: 13px;
-            color: #1a1a2e;
-        }
-
         /* Items table */
-        table {
+        .items-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 24px;
         }
 
-        thead tr {
+        .items-table thead tr {
             background: #4f46e5;
             color: #fff;
         }
 
-        thead th {
+        .items-table thead th {
             padding: 10px 12px;
             text-align: left;
             font-size: 12px;
@@ -163,60 +133,56 @@
             letter-spacing: 0.3px;
         }
 
-        thead th.right {
+        .items-table thead th.right {
             text-align: right;
         }
 
-        tbody tr {
+        .items-table tbody tr {
             border-bottom: 1px solid #f3f4f6;
         }
 
-        tbody tr:last-child {
-            border-bottom: none;
-        }
-
-        tbody td {
+        .items-table tbody td {
             padding: 10px 12px;
             font-size: 13px;
             color: #374151;
             vertical-align: top;
         }
 
-        tbody td.right {
+        .items-table tbody td.right {
             text-align: right;
         }
 
-        tbody td .sub {
+        .sub-text {
             font-size: 11px;
             color: #9ca3af;
             margin-top: 2px;
         }
 
-        /* Totals */
-        .totals {
+        /* Totals table */
+        .totals-table {
             width: 260px;
             margin-left: auto;
+            border-collapse: collapse;
         }
 
-        .totals-row {
-            display: flex;
-            justify-content: space-between;
+        .totals-table td {
             padding: 6px 0;
             font-size: 13px;
             color: #374151;
             border-bottom: 1px solid #f3f4f6;
         }
 
-        .totals-row:last-child {
+        .totals-table td.amount {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .totals-table tr.total-row td {
             border-bottom: none;
             font-size: 15px;
             font-weight: 700;
             color: #1a1a2e;
             padding-top: 10px;
-        }
-
-        .totals-row span:last-child {
-            font-weight: 600;
         }
 
         /* Notes */
@@ -225,10 +191,9 @@
             padding: 16px;
             background: #f9fafb;
             border-left: 3px solid #4f46e5;
-            border-radius: 4px;
         }
 
-        .notes .label {
+        .notes-label {
             font-size: 11px;
             font-weight: 600;
             color: #9ca3af;
@@ -237,7 +202,7 @@
             margin-bottom: 6px;
         }
 
-        .notes .value {
+        .notes-value {
             font-size: 13px;
             color: #374151;
             line-height: 1.6;
@@ -259,62 +224,59 @@
     <div class="page">
 
         {{-- Header --}}
-        <div class="header">
-            <div>
-                <div class="company-name">{{ $tenant->name }}</div>
-            </div>
-            <div class="doc-label">
-                <h1>OFFER</h1>
-                <div class="offer-number">{{ $offer->offer_number }}</div>
-                <div style="margin-top:6px;">
-                    <span class="status-badge status-{{ $offer->status }}">{{ ucfirst($offer->status) }}</span>
-                </div>
-            </div>
-        </div>
+        <table class="layout-table">
+            <tr>
+                <td style="width:50%;">
+                    @if(!empty($logoPath))
+                    <img src="{{ $logoPath }}" alt="{{ $tenant->name }}" class="company-logo">
+                    @endif
+                    <div class="company-name">{{ $tenant->name }}</div>
+                </td>
+                <td style="width:50%; text-align:right;">
+                    <div class="doc-title">OFFER</div>
+                    <div class="doc-number">{{ $offer->offer_number }}</div>
+                    <div style="margin-top:6px; text-align:right;">
+                        <span class="status-badge status-{{ $offer->status }}">{{ ucfirst($offer->status) }}</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
         {{-- Bill To + Dates --}}
-        <div class="meta">
-            <div class="meta-box">
-                <div class="label">Bill To</div>
-                <div class="value">
-                    @if($offer->customer)
-                    <strong>{{ $offer->customer->name }}</strong>
-                    @if($offer->customer->email)
-                    <br>{{ $offer->customer->email }}
-                    @endif
-                    @if($offer->customer->phone)
-                    <br>{{ $offer->customer->phone }}
-                    @endif
-                    @if($offer->customer->address_line_1)
-                    <br>{{ $offer->customer->address_line_1 }}
-                    @endif
-                    @if($offer->customer->city)
-                    <br>{{ $offer->customer->city }}@if($offer->customer->postal_code), {{ $offer->customer->postal_code }}@endif
-                    @endif
-                    @if($offer->customer->country)
-                    <br>{{ $offer->customer->country }}
-                    @endif
-                    @else
-                    <span style="color:#9ca3af;">—</span>
-                    @endif
-                </div>
-            </div>
-            <div style="text-align:right;">
-                <div class="date-item" style="margin-bottom:12px;">
-                    <div class="label">Issue Date</div>
-                    <div class="value">{{ $offer->issue_date?->format('d M Y') ?? '—' }}</div>
-                </div>
-                <div class="date-item">
-                    <div class="label">Valid Until</div>
-                    <div class="value" style="{{ $offer->status === 'expired' ? 'color:#dc2626;' : '' }}">
-                        {{ $offer->valid_until?->format('d M Y') ?? '—' }}
+        <table class="layout-table">
+            <tr>
+                <td style="width:50%;">
+                    <div class="section-label">Bill To</div>
+                    <div class="section-value">
+                        @if($offer->customer)
+                        <strong>{{ $offer->customer->name }}</strong>
+                        @if($offer->customer->email)<br>{{ $offer->customer->email }}@endif
+                        @if($offer->customer->phone)<br>{{ $offer->customer->phone }}@endif
+                        @if($offer->customer->address_line_1)<br>{{ $offer->customer->address_line_1 }}@endif
+                        @if($offer->customer->city)<br>{{ $offer->customer->city }}@if($offer->customer->postal_code), {{ $offer->customer->postal_code }}@endif @endif
+                        @if($offer->customer->country)<br>{{ $offer->customer->country }}@endif
+                        @else
+                        <span style="color:#9ca3af;">&mdash;</span>
+                        @endif
                     </div>
-                </div>
-            </div>
-        </div>
+                </td>
+                <td style="width:50%; text-align:right;">
+                    <div style="margin-bottom:12px;">
+                        <div class="section-label" style="text-align:right;">Issue Date</div>
+                        <div class="section-value" style="text-align:right;">{{ $offer->issue_date?->format('d M Y') ?? '—' }}</div>
+                    </div>
+                    <div>
+                        <div class="section-label" style="text-align:right;">Valid Until</div>
+                        <div class="section-value" style="text-align:right; {{ $offer->status === 'expired' ? 'color:#dc2626;' : '' }}">
+                            {{ $offer->valid_until?->format('d M Y') ?? '—' }}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
         {{-- Line Items --}}
-        <table>
+        <table class="items-table">
             <thead>
                 <tr>
                     <th style="width:40%;">Description</th>
@@ -329,8 +291,8 @@
                 <tr>
                     <td>
                         {{ $item->description }}
-                        @if($item->product)
-                        <div class="sub">{{ $item->product->sku }}</div>
+                        @if($item->product?->sku)
+                        <div class="sub-text">{{ $item->product->sku }}</div>
                         @endif
                     </td>
                     <td class="right">{{ $item->quantity }}</td>
@@ -343,26 +305,26 @@
         </table>
 
         {{-- Totals --}}
-        <div class="totals">
-            <div class="totals-row">
-                <span>Subtotal</span>
-                <span>{{ number_format($offer->subtotal, 2) }} {{ $offer->currency }}</span>
-            </div>
-            <div class="totals-row">
-                <span>Tax</span>
-                <span>{{ number_format($offer->tax_total, 2) }} {{ $offer->currency }}</span>
-            </div>
-            <div class="totals-row">
-                <span>Total</span>
-                <span>{{ number_format($offer->total, 2) }} {{ $offer->currency }}</span>
-            </div>
-        </div>
+        <table class="totals-table">
+            <tr>
+                <td>Subtotal</td>
+                <td class="amount">{{ number_format($offer->subtotal, 2) }} {{ $offer->currency }}</td>
+            </tr>
+            <tr>
+                <td>Tax</td>
+                <td class="amount">{{ number_format($offer->tax_total, 2) }} {{ $offer->currency }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Total</td>
+                <td class="amount">{{ number_format($offer->total, 2) }} {{ $offer->currency }}</td>
+            </tr>
+        </table>
 
         {{-- Notes --}}
         @if($offer->notes)
         <div class="notes">
-            <div class="label">Notes</div>
-            <div class="value">{{ $offer->notes }}</div>
+            <div class="notes-label">Notes</div>
+            <div class="notes-value">{{ $offer->notes }}</div>
         </div>
         @endif
 
@@ -373,5 +335,7 @@
 
     </div>
 </body>
+
+</html>
 
 </html>

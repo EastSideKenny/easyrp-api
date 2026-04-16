@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['order_id', 'product_id', 'description', 'quantity', 'unit_price', 'tax_rate', 'line_total'])]
 class OrderItem extends Model
 {
+    protected $connection = 'tenant';
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

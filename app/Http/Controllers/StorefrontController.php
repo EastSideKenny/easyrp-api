@@ -5,31 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Tenant;
+use App\Models\WebshopSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StorefrontController extends Controller
 {
     /**
-     * Resolve tenant from the subdomain route parameter.
-     */
-    private function resolveTenant(string $subdomain): ?Tenant
-    {
-        return Tenant::where('slug', $subdomain)->where('is_active', true)->first();
-    }
-
-    /**
      * Get public webshop settings for a store.
+     * Schema is already set by the SetTenantSchema middleware via subdomain.
      */
     public function settings(string $subdomain): JsonResponse
     {
-        $tenant = $this->resolveTenant($subdomain);
-
-        if (! $tenant) {
-            return response()->json(['message' => 'Store not found.'], 404);
-        }
-
-        $settings = $tenant->webshopSetting;
+        $settings = WebshopSetting::first();
 
         if (! $settings) {
             return response()->json(['message' => 'Store not configured.'], 404);
@@ -43,14 +31,7 @@ class StorefrontController extends Controller
      */
     public function products(Request $request, string $subdomain): JsonResponse
     {
-        $tenant = $this->resolveTenant($subdomain);
-
-        if (! $tenant) {
-            return response()->json(['message' => 'Store not found.'], 404);
-        }
-
-        $query = Product::where('tenant_id', $tenant->id)
-            ->where('is_active', true);
+        $query = Product::where('is_active', true);
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -89,9 +70,7 @@ class StorefrontController extends Controller
      */
     public function product(string $subdomain, Product $product): JsonResponse
     {
-        $tenant = $this->resolveTenant($subdomain);
-
-        if (! $tenant || $product->tenant_id !== $tenant->id || ! $product->is_active) {
+        if (! $product->is_active) {
             return response()->json(['message' => 'Product not found.'], 404);
         }
 
@@ -114,13 +93,7 @@ class StorefrontController extends Controller
      */
     public function categories(string $subdomain): JsonResponse
     {
-        $tenant = $this->resolveTenant($subdomain);
-
-        if (! $tenant) {
-            return response()->json(['message' => 'Store not found.'], 404);
-        }
-
-        $categories = ProductCategory::where('tenant_id', $tenant->id)->orderBy('name')->get(['id', 'name']);
+        $categories = ProductCategory::orderBy('name')->get(['id', 'name']);
 
         return response()->json($categories);
     }

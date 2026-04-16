@@ -9,15 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['tenant_id', 'order_number', 'customer_id', 'status', 'subtotal', 'tax_total', 'total', 'currency', 'payment_status'])]
+#[Fillable(['order_number', 'customer_id', 'status', 'subtotal', 'tax_total', 'total', 'currency', 'payment_status'])]
 class Order extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
-    }
+    protected $connection = 'tenant';
 
     public function customer(): BelongsTo
     {
