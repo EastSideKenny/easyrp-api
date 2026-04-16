@@ -57,6 +57,23 @@ services:
     networks:
       - easyrp
 
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: easyrp_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work redis --tries=3 --sleep=3
+    volumes:
+      - .:/var/www
+      - vendor_data:/var/www/vendor
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - easyrp
+
   mailpit:
     image: axllent/mailpit
     container_name: easyrp_mailpit
