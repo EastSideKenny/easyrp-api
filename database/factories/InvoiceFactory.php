@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Invoice;
-use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +16,6 @@ class InvoiceFactory extends Factory
         $taxTotal = round($subtotal * 0.1, 2);
 
         return [
-            'tenant_id' => Tenant::factory(),
             'invoice_number' => 'INV-' . date('Y') . '-' . str_pad(fake()->unique()->numberBetween(1, 999999), 6, '0', STR_PAD_LEFT),
             'customer_id' => null,
             'status' => fake()->randomElement(['draft', 'sent', 'paid', 'canceled']),
