@@ -30,7 +30,9 @@ class WebshopSettingController extends Controller
             'stripe_secret_key' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $settings = WebshopSetting::updateOrCreate([], $validated);
+        $settings = WebshopSetting::firstOrCreate(['id' => 1]);
+        $settings->fill($validated);
+        $settings->save();
 
         return response()->json($settings);
     }

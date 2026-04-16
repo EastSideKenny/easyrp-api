@@ -56,10 +56,13 @@
 
     <UiAppEmptyState
       v-else
-      icon="🔍"
       title="No products found"
       description="Try adjusting your search or filter criteria."
-    />
+    >
+      <template #icon>
+        <span class="text-2xl leading-none">🔍</span>
+      </template>
+    </UiAppEmptyState>
   </div>
 </template>
 

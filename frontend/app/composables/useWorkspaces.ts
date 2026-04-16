@@ -27,19 +27,9 @@ export function useWorkspaces() {
 
     /**
      * Navigate to a tenant's subdomain via full page redirect.
-     * Passes the auth token as a query parameter so the target
-     * subdomain can pick it up and store it in its own cookie.
-     * (Cookies are host-scoped and don't cross subdomains.)
      */
     function goToWorkspace(subdomain: string, path: string = '/dashboard') {
-        const { getToken } = useAuth()
-        const token = getToken()
-        let url = buildTenantUrl(subdomain, path)
-
-        if (token) {
-            const separator = url.includes('?') ? '&' : '?'
-            url += `${separator}_token=${encodeURIComponent(token)}`
-        }
+        const url = buildTenantUrl(subdomain, path)
 
         if (import.meta.client) {
             window.location.href = url

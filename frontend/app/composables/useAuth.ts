@@ -4,35 +4,34 @@ import { callWithNuxt } from '#app'
 
 /**
  * Cookie name for the API bearer token.
- * Each subdomain gets its own cookie (host-scoped).
- * Cross-subdomain auth is handled by passing the token in the redirect URL.
+ * On production domains, the cookie is scoped to the parent domain
+ * so tenant subdomains can reuse it.
  */
 const TOKEN_COOKIE = 'auth.token'
 
 /**
  * Simple authentication composable.
  *
- * - Stores the bearer token in a host-scoped cookie
+ * - Stores the bearer token in a cookie
  * - Provides login / logout / fetchUser
  * - All API calls go through a plain $fetch with the Authorization header
- *
- * Cross-subdomain flow:
- *   1. User logs in on localhost:3000 → cookie set for localhost
- *   2. Redirect to test.localhost:3000/dashboard?_token=xxx
- *   3. Middleware reads _token, calls setToken(), strips the param
- *   4. Subsequent requests on test.localhost use the local cookie
  */
 export function useAuth() {
     const user = useState<User | null>('auth.user', () => null)
     const config = useRuntimeConfig()
     const baseUrl = config.public.apiBaseUrl as string
+    const appDomain = String(config.public.appDomain ?? '').split(':')[0]
+    const cookieDomain = appDomain && appDomain !== 'localhost'
+        ? `.${appDomain.replace(/^\./, '')}`
+        : undefined
 
     // ── Single cookie ref ──
-    // Host-scoped (no domain attribute) so it works reliably on every host.
+    // Share across tenant subdomains when appDomain is configured.
     const tokenCookie = useCookie(TOKEN_COOKIE, {
         path: '/',
         sameSite: 'lax' as const,
         maxAge: 60 * 60 * 24 * 365, // 1 year
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
     })
 
     function getToken(): string | null {

@@ -35,23 +35,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // Skip the tenant error page itself to avoid redirect loops
     if (to.path === '/tenant-error') return
 
-    // ── 0. Pick up token from cross-subdomain redirect ──
-    // When a user logs in on the root domain and gets redirected
-    // to a tenant subdomain, the token is passed as ?_token=xxx.
-    // Store it in the local cookie and strip the param from the URL.
-    if (import.meta.client) {
-        const tokenParam = to.query._token as string | undefined
-        if (tokenParam) {
-            const { setToken } = useAuth()
-            setToken(tokenParam)
-
-            // Strip _token from the URL to keep it clean
-            const query = { ...to.query }
-            delete query._token
-            return navigateTo({ path: to.path, query }, { replace: true })
-        }
-    }
-
     // ── 1. Hydrate auth state ──
     // Read the token from the cookie and fetch /api/user so that
     // guards below have access to the current user.

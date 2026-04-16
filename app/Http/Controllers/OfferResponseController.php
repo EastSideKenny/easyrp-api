@@ -18,7 +18,7 @@ class OfferResponseController extends Controller
         ]);
 
         // Look up the tenant and offer from the token lookup table
-        $lookup = DB::table('public.offer_token_lookup')
+        $lookup = DB::table('offer_token_lookup')
             ->where('token', $request->token)
             ->first();
 

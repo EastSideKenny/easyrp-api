@@ -31,7 +31,7 @@
         <input
           v-model.number="form.quantity_change"
           type="number"
-          min="0"
+          :min="form.type === 'sale' ? 0 : undefined"
           :placeholder="form.type === 'sale' ? 'e.g. 5' : 'e.g. 5 or -3'"
           class="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
         />

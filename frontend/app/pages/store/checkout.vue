@@ -58,7 +58,7 @@ const errors = ref<Record<string, string>>({});
 
 onMounted(() => loadSettings());
 
-async function handleCheckout() {
+async function handleCheckout(customerInfo: { name: string; email: string }) {
   processing.value = true;
   errors.value = {};
   try {
@@ -72,6 +72,8 @@ async function handleCheckout() {
           product_id: i.product.id,
           quantity: i.quantity,
         })),
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
       },
     });
 
@@ -80,7 +82,14 @@ async function handleCheckout() {
       window.location.href = res.stripe_checkout_url;
     } else {
       clearCart();
-      navigateTo(`/store/order-confirmation?order=${res.order_number}`);
+      navigateTo({
+        path: "/store/order-confirmation",
+        query: {
+          order: res.order_number,
+          total: String(subtotal.value),
+          email: customerInfo.email,
+        },
+      });
     }
   } catch (e: any) {
     if (e?.data?.errors) errors.value = e.data.errors;

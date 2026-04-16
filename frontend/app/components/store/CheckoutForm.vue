@@ -1,5 +1,5 @@
 <template>
-  <form class="space-y-8" @submit.prevent="$emit('submit')">
+  <form class="space-y-8" @submit.prevent="handleSubmit">
     <!-- Customer Info -->
     <div>
       <h3 class="text-lg font-semibold text-text mb-4">Your Details</h3>
@@ -77,8 +77,8 @@ withDefaults(
   },
 );
 
-defineEmits<{
-  submit: [];
+const emit = defineEmits<{
+  submit: [customerInfo: { name: string; email: string }];
 }>();
 
 const { items, subtotal } = useCart();
@@ -89,4 +89,11 @@ const customerInfo = reactive({
   name: "",
   email: "",
 });
+
+function handleSubmit() {
+  emit("submit", {
+    name: customerInfo.name.trim(),
+    email: customerInfo.email.trim(),
+  });
+}
 </script>
