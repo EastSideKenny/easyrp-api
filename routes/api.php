@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\OfferResponseController;
@@ -58,6 +59,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/plans', [PlanController::class, 'index']);
     Route::get('/plans/{plan}', [PlanController::class, 'show']);
     Route::get('/features', [FeatureController::class, 'index']);
+
+    // Site admin routes
+    Route::middleware('site.admin')->prefix('admin')->group(function () {
+        Route::get('/stats', [AdminController::class, 'stats']);
+        Route::get('/tenants', [AdminController::class, 'tenants']);
+        Route::get('/tenants/{tenant}', [AdminController::class, 'showTenant']);
+        Route::patch('/tenants/{tenant}/plan', [AdminController::class, 'updateTenantPlan']);
+        Route::patch('/tenants/{tenant}/toggle-status', [AdminController::class, 'toggleTenantStatus']);
+        Route::get('/plans', [AdminController::class, 'plans']);
+    });
 
     // Routes that require tenant schema
     Route::middleware('tenant.schema')->group(function () {

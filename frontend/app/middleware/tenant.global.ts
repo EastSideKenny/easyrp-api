@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = [
 function isPublicRoute(path: string): boolean {
     if (PUBLIC_ROUTES.includes(path)) return true
     if (path.startsWith('/store')) return true
+    if (path.startsWith('/admin')) return true
     if (/^\/offers\/[^/]+\/respond$/.test(path)) return true
     return false
 }

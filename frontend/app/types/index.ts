@@ -24,6 +24,7 @@ export interface User {
     email: string
     role: UserRole
     is_active: boolean
+    is_site_admin: boolean
     last_login_at: string | null
     created_at: string
     updated_at: string
