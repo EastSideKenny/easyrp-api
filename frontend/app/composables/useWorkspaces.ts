@@ -40,10 +40,18 @@ export function useWorkspaces() {
      * After login, route the user to the right place:
      * - Has a tenant with a known subdomain → redirect to tenant subdomain dashboard
      * - No tenant yet → redirect to /onboarding to create one
+     *
+     * The auth token is passed via query parameter so the subdomain
+     * can pick it up (cookies with domain=.localhost are unreliable).
      */
     function redirectAfterLogin(user: User) {
         if (user.tenant_id && user.tenant?.subdomain) {
-            goToWorkspace(user.tenant.subdomain)
+            const { getToken } = useAuth()
+            const token = getToken()
+            const path = token
+                ? `/auth/callback?token=${encodeURIComponent(token)}`
+                : '/dashboard'
+            goToWorkspace(user.tenant.subdomain, path)
         } else {
             navigateTo('/onboarding')
         }
