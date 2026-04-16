@@ -34,6 +34,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // Skip the tenant error page itself to avoid redirect loops
     if (to.path === '/tenant-error') return
 
+    // ── 0. Token hand-off from root-domain login redirect (localhost/dev only) ──
+    const tokenParam = to.query._token
+    if (tokenParam !== undefined) {
+        const { hostname } = useRequestURL()
+        const isLocalhostHost = hostname === 'localhost' || hostname.endsWith('.localhost')
+        if (import.meta.dev && isLocalhostHost && typeof tokenParam === 'string' && tokenParam.length > 0) {
+            const { setToken } = useAuth()
+            setToken(tokenParam)
+        }
+        const { _token, ...rest } = to.query
+        return navigateTo({ path: to.path, query: rest }, { replace: true })
+    }
+
     const publicRoute = isPublicRoute(to.path)
 
     // ── 1a. Resolve tenant context early so we can skip unnecessary auth init ──

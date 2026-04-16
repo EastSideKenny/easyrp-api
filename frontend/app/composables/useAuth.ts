@@ -20,13 +20,11 @@ export function useAuth() {
     const user = useState<User | null>('auth.user', () => null)
     const config = useRuntimeConfig()
     const baseUrl = config.public.apiBaseUrl as string
-    const appDomain = String(config.public.appDomain ?? '').split(':')[0]
-    const cookieDomain = appDomain && appDomain !== 'localhost'
-        ? `.${appDomain.replace(/^\./, '')}`
+    const appDomain = String(config.public.appDomain ?? '').split(':')[0].replace(/^\./, '')
+    const cookieDomain = appDomain && appDomain !== 'localhost' && !appDomain.endsWith('.localhost')
+        ? `.${appDomain}`
         : undefined
 
-    // ── Single cookie ref ──
-    // Share across tenant subdomains when appDomain is configured.
     const tokenCookie = useCookie(TOKEN_COOKIE, {
         path: '/',
         sameSite: 'lax' as const,
