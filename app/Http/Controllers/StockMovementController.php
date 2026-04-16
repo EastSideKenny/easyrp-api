@@ -12,12 +12,15 @@ class StockMovementController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = $request->integer('per_page', 25);
+        $productId = $request->integer('product_id');
 
-        return response()->json(
-            StockMovement::with('product:id,name')
-                ->latest()
-                ->paginate($perPage)
-        );
+        $query = StockMovement::with('product:id,name');
+
+        if ($productId > 0) {
+            $query->where('product_id', $productId);
+        }
+
+        return response()->json($query->latest()->paginate($perPage));
     }
 
     public function show(Request $request, StockMovement $stockMovement): JsonResponse

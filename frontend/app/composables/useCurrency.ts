@@ -6,9 +6,9 @@
  * to pass it explicitly.
  */
 export function useCurrency() {
-    // Read the current tenant's currency from the shared Nuxt state.
+    // Read the current tenant's currency from the shared tenant composable.
     // Falls back to USD if the tenant hasn't loaded yet or has no currency set.
-    const tenant = useState<{ currency?: string | null } | null>('current-tenant', () => null)
+    const { tenant } = useTenant()
     const tenantCurrency = computed(() => tenant.value?.currency || 'USD')
 
     const formatCurrency = (amount: number, currency?: string, locale = 'en-US') => {

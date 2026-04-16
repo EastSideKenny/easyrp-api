@@ -50,52 +50,55 @@ class OfferResponseController extends Controller
                 ], 422);
             }
 
-            $status = $request->action === 'accept' ? 'accepted' : 'declined';
-            $offer->update(['status' => $status]);
+            $invoice = DB::connection('tenant')->transaction(function () use ($request, $offer) {
+                $status = $request->action === 'accept' ? 'accepted' : 'declined';
+                $offer->update(['status' => $status]);
 
-            // Record the response for audit/proof purposes
-            \App\Models\OfferResponse::create([
-                'offer_id' => $offer->id,
-                'action' => $status,
-                'channel' => 'email',
-                'performed_by' => null,
-                'performed_by_email' => $offer->customer?->email,
-                'responded_at' => now(),
-            ]);
+                // Record the response for audit/proof purposes
+                \App\Models\OfferResponse::create([
+                    'offer_id' => $offer->id,
+                    'action' => $status,
+                    'channel' => 'email',
+                    'performed_by' => null,
+                    'performed_by_email' => $offer->customer?->email,
+                    'responded_at' => now(),
+                ]);
 
-            $invoice = null;
-            if ($status === 'accepted' && !$offer->invoice_id) {
-                $invoice = DB::connection('tenant')->transaction(function () use ($offer) {
-                    $invoice = \App\Models\Invoice::create([
-                        'invoice_number' => 'INV-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
-                        'customer_id' => $offer->customer_id,
-                        'status' => 'draft',
-                        'issue_date' => now()->toDateString(),
-                        'due_date' => now()->addDays(30)->toDateString(),
-                        'subtotal' => $offer->subtotal,
-                        'tax_total' => $offer->tax_total,
-                        'total' => $offer->total,
-                        'currency' => $offer->currency,
-                        'created_by' => $offer->created_by,
+                if ($status !== 'accepted' || $offer->invoice_id) {
+                    return null;
+                }
+
+                $invoice = \App\Models\Invoice::create([
+                    'invoice_number' => 'INV-' . date('Y') . '-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
+                    'customer_id' => $offer->customer_id,
+                    'status' => 'draft',
+                    'issue_date' => now()->toDateString(),
+                    'due_date' => now()->addDays(30)->toDateString(),
+                    'subtotal' => $offer->subtotal,
+                    'tax_total' => $offer->tax_total,
+                    'total' => $offer->total,
+                    'currency' => $offer->currency,
+                    'created_by' => $offer->created_by,
+                ]);
+
+                foreach ($offer->items as $item) {
+                    \App\Models\InvoiceItem::create([
+                        'invoice_id' => $invoice->id,
+                        'product_id' => $item->product_id,
+                        'description' => $item->description,
+                        'quantity' => (int) $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'tax_rate' => $item->tax_rate,
+                        'line_total' => $item->line_total,
                     ]);
+                }
 
-                    foreach ($offer->items as $item) {
-                        \App\Models\InvoiceItem::create([
-                            'invoice_id' => $invoice->id,
-                            'product_id' => $item->product_id,
-                            'description' => $item->description,
-                            'quantity' => (int) $item->quantity,
-                            'unit_price' => $item->unit_price,
-                            'tax_rate' => $item->tax_rate,
-                            'line_total' => $item->line_total,
-                        ]);
-                    }
+                $offer->update(['invoice_id' => $invoice->id]);
 
-                    $offer->update(['invoice_id' => $invoice->id]);
+                return $invoice;
+            });
 
-                    return $invoice;
-                });
-            }
+            $status = $offer->status;
 
             return response()->json([
                 'message' => "Offer has been {$status}." . ($invoice ? ' Invoice created.' : ''),

@@ -1,6 +1,6 @@
 <template>
   <component
-    :is="to ? resolveComponent('NuxtLink') : 'button'"
+    :is="to ? 'NuxtLink' : 'button'"
     :to="to"
     :type="to ? undefined : type"
     :disabled="disabled || loading"

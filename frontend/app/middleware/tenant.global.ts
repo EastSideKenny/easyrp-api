@@ -35,13 +35,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // Skip the tenant error page itself to avoid redirect loops
     if (to.path === '/tenant-error') return
 
-    // ── 1. Hydrate auth state ──
-    // Read the token from the cookie and fetch /api/user so that
-    // guards below have access to the current user.
-    const { init } = useAuth()
-    await init()
+    const publicRoute = isPublicRoute(to.path)
 
-    // ── 2. Tenant subdomain resolution ──
+    // ── 1a. Resolve tenant context early so we can skip unnecessary auth init ──
     const { hasTenant, isReady, tenantError, resolve, extractSubdomain, tenantSlug } = useTenant()
 
     // Ensure tenantSlug is always set from the subdomain, even before resolve()
@@ -49,6 +45,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
         tenantSlug.value = extractSubdomain()
     }
 
+    // ── 1. Hydrate auth state ──
+    // Read the token from the cookie and fetch /api/user so that
+    // guards below have access to the current user.
+    if (hasTenant.value || !publicRoute) {
+        const { init } = useAuth()
+        await init()
+    }
+
+    // ── 2. Tenant subdomain resolution ──
     // Always resolve the tenant when on a subdomain, regardless of the route.
     // Previously this was skipped for "public" routes, which caused / on a
     // subdomain to hit the tenant-error page because isReady was never set.
@@ -65,7 +70,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // The resolved tenant must match the logged-in user's tenant.
     // This prevents a user from accessing another tenant's subdomain
     // with their own token.
-    if (hasTenant.value && isReady.value && !isPublicRoute(to.path)) {
+    if (hasTenant.value && isReady.value && !publicRoute) {
         const { user } = useAuth()
         const { tenant } = useTenant()
 
@@ -87,7 +92,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     // ── 4. Tenant auth guard ──
     // Protected pages on a subdomain require the user to be logged in.
-    if (hasTenant.value && !isPublicRoute(to.path)) {
+    if (hasTenant.value && !publicRoute) {
         const { isAuthenticated } = useAuth()
         if (!isAuthenticated.value) {
             return navigateTo('/auth/login')
@@ -97,7 +102,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // ── 5. Root-domain guard ──
     // If we're on the root domain and navigating to an app page
     // that requires a tenant, redirect to onboarding
-    if (!hasTenant.value && !isPublicRoute(to.path)) {
+    if (!hasTenant.value && !publicRoute) {
         return navigateTo('/onboarding')
     }
 })

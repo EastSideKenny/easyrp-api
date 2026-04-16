@@ -10,7 +10,7 @@ class WebshopSettingController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $settings = WebshopSetting::first();
+        $settings = WebshopSetting::find(1);
 
         if (! $settings) {
             return response()->json(['message' => 'Webshop settings not configured.'], 404);
@@ -30,9 +30,7 @@ class WebshopSettingController extends Controller
             'stripe_secret_key' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $settings = WebshopSetting::firstOrCreate(['id' => 1]);
-        $settings->fill($validated);
-        $settings->save();
+        $settings = WebshopSetting::updateOrCreate(['id' => 1], $validated);
 
         return response()->json($settings);
     }

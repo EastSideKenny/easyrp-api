@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-const { storeName, loadSettings, applyTheme } = useStoreSettings();
+const { storeName, loadSettings, applyTheme, primaryColor } = useStoreSettings();
 
 const storeRoot = ref<HTMLElement | null>(null);
 
@@ -51,7 +51,7 @@ onMounted(async () => {
 
 // Re-apply theme if settings change (e.g. admin saves new colour in another tab)
 watch(
-  () => useStoreSettings().primaryColor.value,
+  () => primaryColor.value,
   () => applyTheme(storeRoot.value),
 );
 </script>

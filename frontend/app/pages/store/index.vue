@@ -51,7 +51,7 @@ definePageMeta({
 const config = useRuntimeConfig();
 const baseUrl = config.public.apiBaseUrl as string;
 const { tenantSlug } = useTenant();
-const { items, itemCount, addItem } = useCart();
+const { itemCount, addItem } = useCart();
 
 const products = ref<Product[]>([]);
 const loading = ref(true);

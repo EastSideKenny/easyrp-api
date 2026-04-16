@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed bottom-4 right-4 z-99999 flex flex-col gap-3 pointer-events-none"
+    class="fixed bottom-4 right-4 z-[99999] flex flex-col gap-3 pointer-events-none"
   >
     <TransitionGroup
       enter-active-class="transition-all duration-300 ease-out"
