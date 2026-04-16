@@ -136,12 +136,12 @@
                         <th
                             class="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider"
                         >
-                            IP Address
+                            Via
                         </th>
                         <th
                             class="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider"
                         >
-                            User Agent
+                            By
                         </th>
                     </tr>
                 </thead>
@@ -152,31 +152,64 @@
                         class="border-b border-border-light last:border-0"
                     >
                         <td class="px-6 py-3">
-                            <UiAppBadge
-                                :variant="
-                                    response.action === 'accepted'
-                                        ? 'success'
-                                        : 'danger'
-                                "
-                                :label="
-                                    response.action.charAt(0).toUpperCase() +
-                                    response.action.slice(1)
-                                "
-                            />
+                            <span class="inline-flex items-center gap-1.5">
+                                <span
+                                    class="w-2 h-2 rounded-full"
+                                    :class="
+                                        response.action === 'accepted'
+                                            ? 'bg-success'
+                                            : 'bg-danger'
+                                    "
+                                />
+                                <span
+                                    :class="
+                                        response.action === 'accepted'
+                                            ? 'text-success'
+                                            : 'text-danger'
+                                    "
+                                >
+                                    {{
+                                        response.action === "accepted"
+                                            ? "Accepted"
+                                            : "Declined"
+                                    }}
+                                </span>
+                            </span>
                         </td>
                         <td class="px-6 py-3 tabular-nums">
                             {{
                                 new Date(response.responded_at).toLocaleString()
                             }}
                         </td>
-                        <td class="px-6 py-3 font-mono text-xs">
-                            {{ response.ip_address }}
+                        <td class="px-6 py-3">
+                            <span class="inline-flex items-center gap-1.5">
+                                <UiAppBadge
+                                    :variant="
+                                        response.channel === 'email'
+                                            ? 'info'
+                                            : 'neutral'
+                                    "
+                                    :label="
+                                        response.channel === 'email'
+                                            ? 'Email'
+                                            : 'Portal'
+                                    "
+                                />
+                                <span class="text-text-muted">
+                                    {{
+                                        response.channel === "email"
+                                            ? "Customer responded via email link"
+                                            : "Done manually by team member"
+                                    }}
+                                </span>
+                            </span>
                         </td>
-                        <td
-                            class="px-6 py-3 text-xs text-text-muted max-w-xs truncate"
-                            :title="response.user_agent"
-                        >
-                            {{ response.user_agent }}
+                        <td class="px-6 py-3">
+                            {{
+                                response.performer?.name ??
+                                response.performed_by_email ??
+                                "—"
+                            }}
                         </td>
                     </tr>
                 </tbody>

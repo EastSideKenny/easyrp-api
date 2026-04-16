@@ -248,8 +248,10 @@ export interface OfferResponse {
     id: number
     offer_id: number
     action: 'accepted' | 'declined'
-    ip_address: string
-    user_agent: string
+    channel: 'email' | 'portal'
+    performed_by: number | null
+    performed_by_email: string | null
+    performer?: { id: number; name: string }
     responded_at: string
     created_at: string
     updated_at: string

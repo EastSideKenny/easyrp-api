@@ -12,8 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('offer_id')->constrained()->cascadeOnDelete();
             $table->string('action'); // 'accepted' or 'declined'
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
+            $table->string('channel'); // 'email' or 'portal'
+            $table->foreignId('performed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('performed_by_email')->nullable();
             $table->timestamp('responded_at');
             $table->timestamps();
         });

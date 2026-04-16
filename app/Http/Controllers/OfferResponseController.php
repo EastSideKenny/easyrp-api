@@ -57,8 +57,9 @@ class OfferResponseController extends Controller
             \App\Models\OfferResponse::create([
                 'offer_id' => $offer->id,
                 'action' => $status,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'channel' => 'email',
+                'performed_by' => null,
+                'performed_by_email' => $offer->customer?->email,
                 'responded_at' => now(),
             ]);
 

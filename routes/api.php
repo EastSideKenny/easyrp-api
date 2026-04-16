@@ -136,6 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
             Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
             Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);
+            Route::post('/offers/{offer}/decline', [OfferController::class, 'decline']);
 
             // Orders
             Route::apiResource('orders', OrderController::class);

@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Offer;
 use App\Models\OfferItem;
+use App\Models\OfferResponse;
 use App\Services\OfferPdfService;
 use App\Services\PlanLimitService;
 use Illuminate\Http\JsonResponse;
@@ -38,7 +39,7 @@ class OfferController extends Controller
 
     public function show(Request $request, Offer $offer): JsonResponse
     {
-        $offer->load(['items.product', 'customer', 'invoice:id,invoice_number', 'responses']);
+        $offer->load(['items.product', 'customer', 'invoice:id,invoice_number', 'responses.performer:id,name']);
 
         return response()->json($offer);
     }
@@ -220,6 +221,17 @@ class OfferController extends Controller
             Mail::to($offer->customer->email)->queue(new OfferMail($offer));
         }
 
+        // Record audit trail when status changes to accepted or declined
+        if (isset($validated['status']) && in_array($validated['status'], ['accepted', 'declined'])) {
+            OfferResponse::create([
+                'offer_id' => $offer->id,
+                'action' => $validated['status'],
+                'channel' => 'portal',
+                'performed_by' => $request->user()->id,
+                'responded_at' => now(),
+            ]);
+        }
+
         $offer->load(['items.product', 'customer']);
 
         $response = $offer->toArray();
@@ -320,7 +332,7 @@ class OfferController extends Controller
                     'invoice_id'  => $invoice->id,
                     'product_id'  => $item->product_id,
                     'description' => $item->description,
-                    'quantity'    => $item->quantity,
+                    'quantity'    => (int) $item->quantity,
                     'unit_price'  => $item->unit_price,
                     'tax_rate'    => $item->tax_rate,
                     'line_total'  => $item->line_total,
@@ -334,6 +346,14 @@ class OfferController extends Controller
 
             return $invoice;
         });
+
+        OfferResponse::create([
+            'offer_id' => $offer->id,
+            'action' => 'accepted',
+            'channel' => 'portal',
+            'performed_by' => $request->user()->id,
+            'responded_at' => now(),
+        ]);
 
         return response()->json([
             'message' => 'Offer converted to invoice.',
@@ -388,7 +408,7 @@ class OfferController extends Controller
                     'invoice_id'  => $invoice->id,
                     'product_id'  => $item->product_id,
                     'description' => $item->description,
-                    'quantity'    => $item->quantity,
+                    'quantity'    => (int) $item->quantity,
                     'unit_price'  => $item->unit_price,
                     'tax_rate'    => $item->tax_rate,
                     'line_total'  => $item->line_total,
@@ -403,12 +423,44 @@ class OfferController extends Controller
             return $invoice;
         });
 
+        OfferResponse::create([
+            'offer_id' => $offer->id,
+            'action' => 'accepted',
+            'channel' => 'portal',
+            'performed_by' => $request->user()->id,
+            'responded_at' => now(),
+        ]);
+
         $invoice->load('items');
 
         return response()->json([
             'message' => 'Offer accepted. Invoice has been created.',
             'invoice' => $invoice,
         ], 201);
+    }
+
+    public function decline(Request $request, Offer $offer): JsonResponse
+    {
+        if (in_array($offer->status, ['accepted', 'declined'])) {
+            return response()->json([
+                'message' => "Offer is already {$offer->status}.",
+            ], 422);
+        }
+
+        $offer->update(['status' => 'declined']);
+
+        OfferResponse::create([
+            'offer_id' => $offer->id,
+            'action' => 'declined',
+            'channel' => 'portal',
+            'performed_by' => $request->user()->id,
+            'responded_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Offer declined.',
+            'offer' => $offer->fresh(['items.product', 'customer', 'responses.performer:id,name']),
+        ]);
     }
 
     private function storeOfferTokenLookup(string $token, int $tenantId, int $offerId): void
