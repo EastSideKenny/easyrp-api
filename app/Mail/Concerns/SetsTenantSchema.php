@@ -12,8 +12,13 @@ trait SetsTenantSchema
 
     public function initializeSetsTenantSchema(): void
     {
+        $tenantIdFromSearchPath = TenantDatabaseService::tenantIdFromSearchPath(
+            config('database.connections.tenant.search_path')
+        );
+
         $this->tenantId = auth()->user()?->tenant_id
             ?? $this->tenantId
+            ?? $tenantIdFromSearchPath
             ?? 0;
 
         $tenant = $this->tenantId ? Tenant::find($this->tenantId) : null;

@@ -29,6 +29,11 @@ class Invoice extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
@@ -38,8 +43,6 @@ class Invoice extends Model
     {
         return $this->hasMany(Payment::class);
     }
-
-
 
     public function creator(): BelongsTo
     {

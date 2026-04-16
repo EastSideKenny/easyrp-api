@@ -33,7 +33,7 @@ definePageMeta({
 });
 
 const route = useRoute();
-const { payment, loading, fetchPayment, deletePayment } = usePayments();
+const { payment, loading, fetchPayment } = usePayments();
 
 const toast = useToast();
 const paymentId = computed(() => Number(route.params.id));

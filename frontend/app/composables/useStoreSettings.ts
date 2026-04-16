@@ -18,7 +18,6 @@ export function useStoreSettings() {
         const slug = tenantSlug.value
         if (!slug) {
             console.warn('[StoreSettings] No tenant slug available')
-            loaded.value = true
             return
         }
         try {

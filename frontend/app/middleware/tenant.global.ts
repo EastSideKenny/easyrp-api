@@ -14,12 +14,11 @@ const PUBLIC_ROUTES = [
 
 /**
  * Check if a route path matches a public route.
- * Matches exact paths and also /store/* and /offers/*
+ * Matches exact paths and also /store routes and /offers/{token}/respond.
  */
 function isPublicRoute(path: string): boolean {
     if (PUBLIC_ROUTES.includes(path)) return true
     if (path.startsWith('/store')) return true
-    if (path.startsWith('/admin')) return true
     if (/^\/offers\/[^/]+\/respond$/.test(path)) return true
     return false
 }
