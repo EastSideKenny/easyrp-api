@@ -8,7 +8,7 @@
         "dev": "nuxt dev",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
-        "postinstall": "nuxt prepare"
+        "postinstall": "node -e \"console.log('\\n[postinstall] Running nuxt prepare (often 1-3 min; prints little until done)...\\n')\" && nuxt prepare"
     },
     "dependencies": {
         "@fontsource-variable/inter": "^5.2.8",
