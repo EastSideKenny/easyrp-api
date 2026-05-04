@@ -2,10 +2,9 @@
     <div class="max-w-3xl mx-auto space-y-8">
         <UiAppSectionHeader
             title="Plan & Billing"
-            description="View your current plan, trial status, and feature usage."
+            description="View your current plan, trial status, and feature usage. Change plans when you need more capacity."
         />
 
-        <!-- Loading -->
         <UiAppCard v-if="subscriptionLoading" :no-padding="true">
             <div class="flex items-center justify-center py-16 text-text-muted">
                 <svg
@@ -32,33 +31,99 @@
         </UiAppCard>
 
         <template v-else-if="subscription">
-            <!-- Current Plan -->
             <UiAppCard title="Current Plan">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-lg font-semibold text-text">
-                            {{ subscription.plan?.name ?? "Unknown Plan" }}
+                            {{ currentPlanMerged?.name ?? "Unknown Plan" }}
                         </p>
                         <p class="text-sm text-text-muted mt-1">
                             Status:
-                            <UiAppBadge :variant="statusBadge">{{
+                            <UiAppBadge :variant="statusBadge" :dot="false">{{
                                 statusLabel
                             }}</UiAppBadge>
                         </p>
                     </div>
-                    <div v-if="subscription.plan" class="text-right">
-                        <p class="text-2xl font-bold text-text">
-                            ${{ subscription.plan.price_monthly }}
-                            <span class="text-sm font-normal text-text-muted"
-                                >/mo</span
-                            >
+                    <div v-if="currentPlanMerged" class="text-right">
+                        <p class="text-2xl font-bold text-text tabular-nums">
+                            {{
+                                formatPlanAmount(
+                                    currentPlanMerged,
+                                    billingCycle,
+                                )
+                            }}
+                            <span class="text-sm font-normal text-text-muted">{{
+                                billingCycle === "yearly" ? "/yr" : "/mo"
+                            }}</span>
+                        </p>
+                        <p
+                            v-if="billingVsWorkspaceCurrencyHint"
+                            class="text-xs text-text-muted mt-1 max-w-[14rem] ml-auto text-balance"
+                        >
+                            {{ billingVsWorkspaceCurrencyHint }}
                         </p>
                     </div>
                 </div>
             </UiAppCard>
 
-            <!-- Trial Info -->
-            <UiAppCard v-if="isTrialing" title="Trial Period">
+            <UiAppCard
+                v-if="
+                    subscription.stripe_subscription_id &&
+                    currentPlanMerged &&
+                    !currentPlanMerged.is_free &&
+                    subscription.status !== 'canceled'
+                "
+                title="Manage subscription"
+            >
+                <div v-if="isCancelingAtPeriodEnd" class="space-y-4">
+                    <p class="text-sm text-text-secondary">
+                        Billing is canceled for this workspace. You still have full access until
+                        <strong class="text-text">{{ formattedAccessEndDate }}</strong>.
+                        Resume before then to keep your plan without interruption.
+                    </p>
+                    <UiAppButton
+                        :loading="resumeLoading"
+                        @click="resumeSubscriptionAction"
+                    >
+                        Keep my subscription
+                    </UiAppButton>
+                </div>
+                <div v-else class="space-y-3">
+                    <p class="text-xs text-text-muted max-w-lg">
+                        Canceling stops future charges. You keep every feature until the end of the
+                        period you already paid for.
+                    </p>
+                    <UiAppButton variant="outline" @click="showCancelConfirm = true">
+                        Cancel subscription
+                    </UiAppButton>
+                </div>
+            </UiAppCard>
+
+            <UiAppModal v-model="showCancelConfirm" title="Cancel subscription?" size="sm">
+                <p class="text-sm text-text-secondary">
+                    Your workspace stays fully usable until
+                    <strong class="text-text">{{ formattedNextRenewalHint }}</strong>. After that,
+                    you'll need an active plan to keep using invoicing, inventory, and other paid
+                    features.
+                </p>
+                <template #footer>
+                    <UiAppButton variant="outline" @click="showCancelConfirm = false">
+                        Keep subscription
+                    </UiAppButton>
+                    <UiAppButton
+                        variant="danger"
+                        :loading="cancelLoading"
+                        @click="confirmCancelSubscription"
+                    >
+                        Cancel at period end
+                    </UiAppButton>
+                </template>
+            </UiAppModal>
+
+            <UiAppCard
+                v-if="isTrialing && !subscription.stripe_subscription_id"
+                title="Trial Period"
+            >
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-text-secondary"
@@ -94,20 +159,74 @@
                 </div>
             </UiAppCard>
 
-            <!-- Expired Notice -->
             <UiAppCard v-if="isExpired">
                 <div class="flex items-center gap-3 text-danger">
                     <AlertCircle class="w-5 h-5 shrink-0" />
                     <div>
-                        <p class="font-semibold">Your trial has expired</p>
+                        <p class="font-semibold">Your trial has ended</p>
                         <p class="text-sm text-text-muted mt-0.5">
-                            Contact the site administrator to upgrade your plan.
+                            Choose a plan below and add a card if required to
+                            restore access.
                         </p>
                     </div>
                 </div>
             </UiAppCard>
 
-            <!-- Usage -->
+            <UiAppCard title="Change plan">
+                <div
+                    v-if="needsPaidRenewal"
+                    class="mb-6 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-text-secondary"
+                >
+                    <p class="font-medium text-text">Resume your subscription</p>
+                    <p class="mt-1">
+                        Select your current plan below, add a payment method if asked, then click
+                        <strong class="text-text">Renew subscription</strong> to start billing again
+                        on the same plan.
+                    </p>
+                </div>
+
+                <SubscriptionsPlanSelector
+                    v-model="selectedPlanId"
+                    :billing-cycle="billingCycle"
+                    :plans="billingSelectablePlans"
+                    :plans-loading="plansLoading"
+                    :current-plan-id="subscription.plan_id"
+                    @update:billing-cycle="billingCycle = $event"
+                />
+
+                <div v-if="showPaymentFields" class="mt-6 space-y-4">
+                    <UiAppFormField
+                        label="Name on card"
+                        id="billing-card-name"
+                    >
+                        <input
+                            id="billing-card-name"
+                            v-model="cardholderName"
+                            type="text"
+                            autocomplete="cc-name"
+                            class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            placeholder="Full name"
+                        />
+                    </UiAppFormField>
+                    <ClientOnly>
+                        <SubscriptionsStripeCardForm
+                            ref="stripeCardRef"
+                            :disabled="planActionLoading"
+                        />
+                    </ClientOnly>
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-2">
+                    <UiAppButton
+                        :loading="planActionLoading"
+                        :disabled="!canSubmitPlanChange || planActionLoading"
+                        @click="applyPlanChange"
+                    >
+                        {{ planActionButtonLabel }}
+                    </UiAppButton>
+                </div>
+            </UiAppCard>
+
             <UiAppCard v-if="usageList.length" title="Feature Usage">
                 <div class="space-y-4">
                     <UiAppUsageMeter
@@ -119,15 +238,52 @@
             </UiAppCard>
         </template>
 
-        <!-- No subscription -->
         <UiAppCard v-else>
-            <div class="text-center py-8 text-text-muted">
+            <div class="text-center py-6 text-text-muted space-y-4">
                 <p class="text-lg font-medium text-text mb-1">
                     No active subscription
                 </p>
-                <p class="text-sm">
-                    Contact the site administrator to get started with a plan.
+                <p class="text-sm max-w-md mx-auto">
+                    Pick a paid plan for this workspace — add a card when prompted.
                 </p>
+            </div>
+
+            <SubscriptionsPlanSelector
+                v-model="selectedPlanId"
+                :billing-cycle="billingCycle"
+                :plans="billingSelectablePlans"
+                :plans-loading="plansLoading"
+                :current-plan-id="null"
+                @update:billing-cycle="billingCycle = $event"
+            />
+
+            <div v-if="selectedPlan && !selectedPlan.is_free" class="mt-6 space-y-4">
+                <UiAppFormField label="Name on card" id="billing-card-name-empty">
+                    <input
+                        id="billing-card-name-empty"
+                        v-model="cardholderName"
+                        type="text"
+                        autocomplete="cc-name"
+                        class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="Full name"
+                    />
+                </UiAppFormField>
+                <ClientOnly>
+                    <SubscriptionsStripeCardForm
+                        ref="stripeCardRefEmpty"
+                        :disabled="planActionLoading"
+                    />
+                </ClientOnly>
+            </div>
+
+            <div class="mt-6 flex justify-center">
+                <UiAppButton
+                    :loading="planActionLoading"
+                    :disabled="!selectedPlanId || planActionLoading"
+                    @click="applyNewSubscription"
+                >
+                    Activate plan
+                </UiAppButton>
             </div>
         </UiAppCard>
     </div>
@@ -135,21 +291,151 @@
 
 <script setup lang="ts">
 import { AlertCircle } from "lucide-vue-next";
-import type { FeatureUsage } from "~/types";
+import type { FeatureUsage, Plan } from "~/types";
 
 definePageMeta({
     layout: "default",
     middleware: ["auth", "tenant-admin"],
 });
 
+const { authFetch, user } = useAuth();
+const toast = useToast();
+const { stripeError } = useStripe();
+const { formatCurrency, tenantCurrency } = useCurrency();
+
 const {
     subscription,
     subscriptionLoading,
+    fetchSubscription,
     isTrialing,
     isExpired,
     isUrgent,
     daysLeft,
+    isCancelingAtPeriodEnd,
+    plans,
+    plansLoading,
+    fetchPlans,
+    subscribeToFreePlan,
+    subscribeToPaidPlan,
+    changePlan,
+    cancelSubscription,
+    resumeSubscription,
 } = useSubscription();
+
+const billingCycle = ref<"monthly" | "yearly">("monthly");
+const selectedPlanId = ref<number | null>(null);
+const cardholderName = ref("");
+const planActionLoading = ref(false);
+const cancelLoading = ref(false);
+const resumeLoading = ref(false);
+const showCancelConfirm = ref(false);
+const stripeCardRef = ref<{
+    getPaymentMethodId: (b?: { name?: string; email?: string }) => Promise<string | null>;
+} | null>(null);
+const stripeCardRefEmpty = ref<{
+    getPaymentMethodId: (b?: { name?: string; email?: string }) => Promise<string | null>;
+} | null>(null);
+
+/** Omit signup free-trial plan unless this workspace is currently on it */
+const billingSelectablePlans = computed((): Plan[] => {
+    const list = plans.value;
+    const ftp = list.find((p) => p.slug === "free_trial");
+    if (!ftp) return list;
+    const sub = subscription.value;
+    const onFreeTrialNow = !!sub?.plan_id && sub.plan_id === ftp.id;
+    if (onFreeTrialNow) return list;
+    return list.filter((p) => p.id !== ftp.id);
+});
+
+/** Merge catalog row (currency / is_free) with subscription payload */
+const currentPlanMerged = computed((): Plan | undefined => {
+    const sub = subscription.value;
+    if (!sub?.plan_id) return undefined;
+    const catalog = plans.value.find((p) => p.id === sub.plan_id);
+    const apiPlan = sub.plan as Plan | undefined;
+    if (!catalog && !apiPlan) return undefined;
+    if (!apiPlan) return catalog;
+    if (!catalog) return apiPlan;
+    return {
+        ...catalog,
+        ...apiPlan,
+        currency: catalog.currency ?? apiPlan.currency,
+        price_monthly: catalog.price_monthly ?? apiPlan.price_monthly,
+        price_yearly: catalog.price_yearly ?? apiPlan.price_yearly,
+        is_free: catalog.is_free ?? apiPlan.is_free,
+        features: catalog.features ?? apiPlan.features,
+    };
+});
+
+const selectedPlan = computed(
+    () =>
+        billingSelectablePlans.value.find((p) => p.id === selectedPlanId.value) ??
+        null,
+);
+
+const canRenewSamePlan = computed(() => {
+    const sub = subscription.value;
+    const plan = selectedPlan.value;
+    if (!sub || !plan || plan.is_free || !sub.stripe_subscription_id) return false;
+    if (sub.status !== "canceled") return false;
+    return selectedPlanId.value === sub.plan_id;
+});
+
+const needsPaidRenewal = computed(() => {
+    const sub = subscription.value;
+    return Boolean(
+        sub?.stripe_subscription_id &&
+            sub.status === "canceled" &&
+            !currentPlanMerged.value?.is_free,
+    );
+});
+
+const showPaymentFields = computed(() => {
+    if (!subscription.value || !selectedPlan.value) return false;
+    if (selectedPlan.value.is_free) return false;
+    const sub = subscription.value;
+    // Ended Stripe subs still have stripe_subscription_id — backend creates a new sub and needs a PM.
+    if (!sub.stripe_subscription_id || sub.status === "canceled") return true;
+    if (selectedPlan.value.id === sub.plan_id) return false;
+    return false;
+});
+
+const canSubmitPlanChange = computed(() => {
+    if (!subscription.value || !selectedPlanId.value || !selectedPlan.value) {
+        return false;
+    }
+    if (canRenewSamePlan.value) return true;
+    if (selectedPlanId.value === subscription.value.plan_id) return false;
+    return true;
+});
+
+const planActionButtonLabel = computed(() => {
+    if (!subscription.value) return "Update plan";
+    if (canRenewSamePlan.value) return "Renew subscription";
+    if (selectedPlanId.value === subscription.value.plan_id) return "Current plan";
+    return "Update plan";
+});
+
+function formatDateHint(iso: string | null | undefined, fallback: string): string {
+    if (!iso) return fallback;
+    try {
+        return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+    } catch {
+        return fallback;
+    }
+}
+
+const formattedAccessEndDate = computed(() =>
+    formatDateHint(subscription.value?.current_period_end, "the end of your billing period"),
+);
+
+/** Cancel modal — uses API period/access end when present. */
+const formattedNextRenewalHint = computed(() =>
+    formatDateHint(
+        subscription.value?.current_period_end,
+        "the end of your current billing period",
+    ),
+);
 
 const statusLabel = computed(() => {
     const s = subscription.value?.status;
@@ -157,6 +443,7 @@ const statusLabel = computed(() => {
     if (s === "active") return "Active";
     if (s === "expired") return "Expired";
     if (s === "canceled") return "Canceled";
+    if (s === "canceling") return "Ends at period end";
     if (s === "past_due") return "Past Due";
     return s ?? "Unknown";
 });
@@ -165,14 +452,198 @@ const statusBadge = computed(() => {
     const s = subscription.value?.status;
     if (s === "active") return "success" as const;
     if (s === "trialing") return "warning" as const;
+    if (s === "canceling") return "warning" as const;
     if (s === "expired" || s === "canceled") return "danger" as const;
     return "neutral" as const;
+});
+
+function planBillingCurrency(plan: Plan | undefined): string {
+    return (
+        plan?.currency ??
+        plans.value.find((p) => p.currency)?.currency ??
+        "USD"
+    ).toUpperCase();
+}
+
+function formatPlanAmount(
+    plan: Plan,
+    cycle: "monthly" | "yearly",
+): string {
+    const cur = planBillingCurrency(plan);
+    if (plan.is_free) {
+        return formatCurrency(0, cur);
+    }
+    const amount =
+        cycle === "yearly" ? plan.price_yearly : plan.price_monthly;
+    return formatCurrency(amount, cur);
+}
+
+/** When workspace invoice currency differs from Stripe billing currency */
+const billingVsWorkspaceCurrencyHint = computed(() => {
+    const bill = planBillingCurrency(currentPlanMerged.value);
+    const ws = tenantCurrency.value.toUpperCase();
+    if (!currentPlanMerged.value || bill === ws) return "";
+    return `Subscription prices are in ${bill}. Your workspace uses ${ws} on invoices and quotes.`;
 });
 
 const usageList = computed<FeatureUsage[]>(() => {
     const raw = subscription.value?.usage;
     if (!raw) return [];
     if (Array.isArray(raw)) return raw;
-    return Object.entries(raw).map(([feature, data]) => ({ feature, ...data }));
+    return Object.entries(raw).map(([feature, data]) => ({
+        feature,
+        ...(data as Omit<FeatureUsage, "feature">),
+    }));
 });
+
+onMounted(async () => {
+    await fetchPlans(authFetch);
+    await fetchSubscription(authFetch);
+    if (subscription.value?.plan_id) {
+        selectedPlanId.value = subscription.value.plan_id;
+    } else if (billingSelectablePlans.value.length) {
+        selectedPlanId.value = billingSelectablePlans.value[0]?.id ?? null;
+    }
+});
+
+watch(
+    () => subscription.value?.plan_id,
+    (id) => {
+        if (id && !planActionLoading.value) selectedPlanId.value = id;
+    },
+);
+
+watch(
+    billingSelectablePlans,
+    (list) => {
+        const ids = list.map((p) => p.id);
+        if (
+            planActionLoading.value ||
+            selectedPlanId.value === null ||
+            ids.includes(selectedPlanId.value)
+        ) {
+            return;
+        }
+        const fallback =
+            subscription.value?.plan_id &&
+            ids.includes(subscription.value.plan_id)
+                ? subscription.value.plan_id
+                : (ids[0] ?? null);
+        selectedPlanId.value = fallback;
+    },
+    { flush: "post" },
+);
+
+async function resumeSubscriptionAction() {
+    resumeLoading.value = true;
+    try {
+        await resumeSubscription(authFetch);
+        toast.success("Your subscription will continue renewing.");
+    } catch (e) {
+        toast.apiError(e, "Could not resume subscription.");
+    } finally {
+        resumeLoading.value = false;
+    }
+}
+
+async function confirmCancelSubscription() {
+    cancelLoading.value = true;
+    try {
+        await cancelSubscription(authFetch, false);
+        toast.success(
+            "Subscription canceled. You keep full access until the end of your billing period.",
+        );
+        showCancelConfirm.value = false;
+    } catch (e) {
+        toast.apiError(e, "Could not cancel subscription.");
+    } finally {
+        cancelLoading.value = false;
+    }
+}
+
+async function applyPlanChange() {
+    if (!subscription.value || !selectedPlan.value) return;
+    planActionLoading.value = true;
+    try {
+        const target = selectedPlan.value;
+        const sub = subscription.value;
+
+        const renewingEndedPaid =
+            target.id === sub.plan_id &&
+            Boolean(sub.stripe_subscription_id) &&
+            sub.status === "canceled" &&
+            !target.is_free;
+
+        if (target.id === sub.plan_id && !renewingEndedPaid) {
+            toast.info("This plan is already active.");
+            return;
+        }
+
+        const needsPaymentMethod =
+            !target.is_free &&
+            (!sub.stripe_subscription_id || sub.status === "canceled");
+
+        if (needsPaymentMethod) {
+            const pm = await stripeCardRef.value?.getPaymentMethodId({
+                name: cardholderName.value.trim() || undefined,
+                email: user.value?.email,
+            });
+            if (!pm) {
+                toast.error(
+                    stripeError.value || "Enter a valid card to continue.",
+                );
+                return;
+            }
+            await changePlan(
+                target.id,
+                authFetch,
+                billingCycle.value,
+                pm,
+            );
+        } else {
+            await changePlan(target.id, authFetch, billingCycle.value);
+        }
+
+        await fetchSubscription(authFetch);
+        toast.success("Your plan has been updated.");
+    } catch (e) {
+        toast.apiError(e, "Could not update the plan.");
+    } finally {
+        planActionLoading.value = false;
+    }
+}
+
+async function applyNewSubscription() {
+    if (!selectedPlan.value) return;
+    planActionLoading.value = true;
+    try {
+        const target = selectedPlan.value as Plan;
+        if (target.is_free) {
+            await subscribeToFreePlan(target.id, authFetch);
+        } else {
+            const pm = await stripeCardRefEmpty.value?.getPaymentMethodId({
+                name: cardholderName.value.trim() || undefined,
+                email: user.value?.email,
+            });
+            if (!pm) {
+                toast.error(
+                    stripeError.value || "Enter a valid card to continue.",
+                );
+                return;
+            }
+            await subscribeToPaidPlan(
+                target.id,
+                pm,
+                authFetch,
+                billingCycle.value,
+            );
+        }
+        await fetchSubscription(authFetch);
+        toast.success("Subscription activated.");
+    } catch (e) {
+        toast.apiError(e, "Could not activate the plan.");
+    } finally {
+        planActionLoading.value = false;
+    }
+}
 </script>

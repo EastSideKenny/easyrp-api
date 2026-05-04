@@ -22,9 +22,14 @@ use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebshopSettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Stripe webhook — must match Dashboard URL (default Laravel api prefix → `/api/stripe/webhook`).
+Route::post('/stripe/webhook', [WebhookController::class, 'handleWebhook'])
+    ->withoutMiddleware(['auth:sanctum']);
 
 // Public auth routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -62,6 +67,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/plans/{plan}', [PlanController::class, 'show']);
     Route::get('/features', [FeatureController::class, 'index']);
 
+    // Subscription routes
+    Route::get('/subscription-plans', [SubscriptionController::class, 'listPlans']);
+    Route::get('/subscription-plans/{plan}', [SubscriptionController::class, 'getPlan']);
+
     // Site admin routes
     Route::middleware('site.admin')->prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
@@ -74,16 +83,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Routes that require tenant schema
     Route::middleware('tenant.schema')->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [DashboardController::class, 'stats']);
-
         // Tenant
         Route::get('/tenant', [TenantController::class, 'show']);
         Route::patch('/tenant', [TenantController::class, 'update']);
 
-        // Subscriptions
+        // Subscriptions (tenant-scoped — Cashier handles all Stripe-side state)
         Route::get('/subscriptions', [SubscriptionController::class, 'index']);
-        Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
+        Route::get('/subscriptions/current', [SubscriptionController::class, 'current']);
+        Route::post('/subscriptions/subscribe-paid', [SubscriptionController::class, 'subscribeToPaid']);
+        Route::post('/subscriptions/subscribe-free', [SubscriptionController::class, 'subscribeToFree']);
+        Route::post('/subscriptions/change-plan', [SubscriptionController::class, 'changePlan']);
+        Route::post('/subscriptions/resume', [SubscriptionController::class, 'resume']);
+        Route::delete('/subscriptions', [SubscriptionController::class, 'cancel']);
 
         // Tenant settings (owner/admin only, accessible even with expired trial)
         Route::middleware('tenant.admin')->group(function () {
@@ -98,54 +109,59 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/settings/users/{user}', [UserManagementController::class, 'destroy']);
         });
 
-        // All routes below require an active subscription / non-expired trial
+        // Active subscription / trial — each subgroup also checks plan_features pivot codes.
         Route::middleware('trial.active')->group(function () {
-            // Products
-            Route::apiResource('products', ProductController::class);
-            Route::get('/products/{product}/in-use', [ProductController::class, 'inUse']);
+            Route::get('/dashboard', [DashboardController::class, 'stats']);
 
-            // Product Categories
-            Route::apiResource('product-categories', ProductCategoryController::class);
+            Route::middleware('plan.feature:products')->group(function () {
+                Route::apiResource('products', ProductController::class);
+                Route::get('/products/{product}/in-use', [ProductController::class, 'inUse']);
+                Route::apiResource('product-categories', ProductCategoryController::class);
+            });
 
-            // Customers
-            Route::apiResource('customers', CustomerController::class);
+            Route::middleware('plan.feature:customers')->group(function () {
+                Route::apiResource('customers', CustomerController::class);
+            });
 
-            // Invoices
-            Route::apiResource('invoices', InvoiceController::class);
-            Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
-            Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
-            Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+            Route::middleware('plan.feature:invoices')->group(function () {
+                Route::apiResource('invoices', InvoiceController::class);
+                Route::post('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
+                Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
+                Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+            });
 
-            // Payments
-            Route::get('/payments', [PaymentController::class, 'index']);
-            Route::get('/payments/{payment}', [PaymentController::class, 'show']);
-            Route::post('/payments', [PaymentController::class, 'store']);
-            Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
+            Route::middleware('plan.feature:payments')->group(function () {
+                Route::get('/payments', [PaymentController::class, 'index']);
+                Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+                Route::post('/payments', [PaymentController::class, 'store']);
+                Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
+            });
 
-            // Stock Movements
-            Route::get('/stock-movements', [StockMovementController::class, 'index']);
-            Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
-            Route::post('/stock-movements', [StockMovementController::class, 'store']);
+            Route::middleware('plan.feature:inventory')->group(function () {
+                Route::get('/stock-movements', [StockMovementController::class, 'index']);
+                Route::get('/stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
+                Route::post('/stock-movements', [StockMovementController::class, 'store']);
+                Route::get('/inventory', [InventoryController::class, 'index']);
+            });
 
-            // Inventory
-            Route::get('/inventory', [InventoryController::class, 'index']);
+            Route::middleware('plan.feature:offers')->group(function () {
+                Route::apiResource('offers', OfferController::class);
+                Route::post('/offers/{offer}/send', [OfferController::class, 'send']);
+                Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
+                Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
+                Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);
+                Route::post('/offers/{offer}/decline', [OfferController::class, 'decline']);
+            });
 
-            // Offers
-            Route::apiResource('offers', OfferController::class);
-            Route::post('/offers/{offer}/send', [OfferController::class, 'send']);
-            Route::post('/offers/{offer}/convert-to-invoice', [OfferController::class, 'convertToInvoice']);
-            Route::get('/offers/{offer}/pdf', [OfferController::class, 'pdf']);
-            Route::post('/offers/{offer}/accept', [OfferController::class, 'accept']);
-            Route::post('/offers/{offer}/decline', [OfferController::class, 'decline']);
+            Route::middleware('plan.feature:orders')->group(function () {
+                Route::apiResource('orders', OrderController::class);
+            });
 
-            // Orders
-            Route::apiResource('orders', OrderController::class);
+            Route::middleware('plan.feature:storefront')->group(function () {
+                Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
+                Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
+            });
 
-            // Webshop Settings
-            Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
-            Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
-
-            // Setup Progress
             Route::get('/setup-progress', [SetupProgressController::class, 'index']);
             Route::patch('/setup-progress/{step}', [SetupProgressController::class, 'update']);
         });

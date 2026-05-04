@@ -55,7 +55,11 @@ export interface Plan {
     slug: string
     price_monthly: number
     price_yearly: number
+    /** ISO 4217 — matches Stripe/Cashier; amounts above are in this currency */
+    currency?: string
     is_active: boolean
+    /** From GET /api/subscription-plans — false when Stripe billing applies */
+    is_free?: boolean
     features?: PlanFeature[]
     created_at: string
     updated_at: string
@@ -70,7 +74,17 @@ export interface Feature {
     updated_at: string
 }
 
-export type SubscriptionStatus = 'active' | 'trialing' | 'expired' | 'canceled' | 'past_due'
+export type SubscriptionStatus =
+    | 'active'
+    | 'trialing'
+    | 'expired'
+    | 'canceled'
+    /** Paid subscription canceled at period end — access continues until {@link TenantSubscription.current_period_end}. */
+    | 'canceling'
+    | 'past_due'
+    | 'unpaid'
+    | 'incomplete'
+    | 'paused'
 
 /**
  * Per-feature usage entry returned inside GET /api/subscriptions.

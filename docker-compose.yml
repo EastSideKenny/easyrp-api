@@ -64,7 +64,7 @@ services:
     container_name: easyrp_queue
     restart: unless-stopped
     working_dir: /var/www
-    command: php artisan queue:work redis --tries=3 --sleep=3
+    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--sleep=3"]
     volumes:
       - .:/var/www
       - vendor_data:/var/www/vendor
