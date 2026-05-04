@@ -43,8 +43,20 @@ return [
     ],
 
     'stripe' => [
-    'key' => env('STRIPE_KEY'),
-    'secret' => env('STRIPE_SECRET'),
-],
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'plans' => [
+            'starter' => [
+                'product_id' => env('STRIPE_STARTER_PRODUCT_ID'),
+                'monthly_price_id' => env('STRIPE_STARTER_MONTHLY_PRICE_ID'),
+                'yearly_price_id' => env('STRIPE_STARTER_YEARLY_PRICE_ID'),
+            ],
+            'pro' => [
+                'product_id' => env('STRIPE_PRO_PRODUCT_ID'),
+                'monthly_price_id' => env('STRIPE_PRO_MONTHLY_PRICE_ID'),
+                'yearly_price_id' => env('STRIPE_PRO_YEARLY_PRICE_ID'),
+            ],
+        ],
+    ],
 
 ];
