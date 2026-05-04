@@ -10,9 +10,6 @@ import type { User } from '~/types'
 export function useWorkspaces() {
     const config = useRuntimeConfig()
     const appDomain = config.public.appDomain as string
-    const normalizedAppDomain = appDomain.split(':')[0].replace(/^\./, '')
-    const shouldUseQueryTokenHandoff = import.meta.dev
-        && (normalizedAppDomain === 'localhost' || normalizedAppDomain.endsWith('.localhost'))
 
     /**
      * Build the full URL to a tenant's subdomain.
@@ -44,14 +41,14 @@ export function useWorkspaces() {
      * - Has a tenant with a known subdomain → redirect to tenant subdomain dashboard
      * - No tenant yet → redirect to /onboarding to create one
      *
-     * In local dev only, the auth token is passed via query parameter so
-     * localhost subdomains can pick it up (domain=.localhost is invalid).
+     * The auth token is passed via query parameter so the subdomain
+     * can pick it up (cookies with domain=.localhost are unreliable).
      */
     function redirectAfterLogin(user: User) {
         if (user.tenant_id && user.tenant?.subdomain) {
             const { getToken } = useAuth()
             const token = getToken()
-            const path = token && shouldUseQueryTokenHandoff
+            const path = token
                 ? `/dashboard?_token=${encodeURIComponent(token)}`
                 : '/dashboard'
             goToWorkspace(user.tenant.subdomain, path)

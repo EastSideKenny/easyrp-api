@@ -206,93 +206,56 @@
               Choose your plan
             </h1>
             <p class="mt-1.5 text-sm text-text-secondary">
-              Start free — no credit card required. Upgrade anytime.
+              Start free with a 14-day trial, or subscribe to Starter / Pro with a card — billing starts right away.
             </p>
           </div>
 
           <form class="space-y-3" @submit.prevent="handleCreateWorkspace">
-            <div
-              v-for="plan in planOptions"
-              :key="plan.slug"
-              class="border rounded-xl px-4 py-4 cursor-pointer transition-all duration-200 select-none"
-              :class="
-                form.plan === plan.slug
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                  : 'border-border bg-surface hover:border-primary/30 hover:bg-surface-alt'
-              "
-              @click="form.plan = plan.slug"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div
-                    class="w-4 h-4 mt-0.5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors"
-                    :class="
-                      form.plan === plan.slug
-                        ? 'border-primary'
-                        : 'border-border'
-                    "
-                  >
-                    <div
-                      v-if="form.plan === plan.slug"
-                      class="w-2 h-2 rounded-full bg-primary"
-                    />
-                  </div>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-bold text-text">{{
-                        plan.name
-                      }}</span>
-                      <span
-                        v-if="plan.badge"
-                        class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                        :class="plan.badgeClass"
-                        >{{ plan.badge }}</span
-                      >
-                    </div>
-                    <p class="text-xs text-text-muted mt-0.5">
-                      {{ plan.description }}
-                    </p>
-                  </div>
-                </div>
-                <div class="text-right shrink-0">
-                  <span
-                    v-if="plan.price === 0"
-                    class="text-sm font-bold text-text"
-                    >Free</span
-                  >
-                  <span v-else class="text-sm font-bold text-text"
-                    >${{ plan.price
-                    }}<span class="text-xs font-normal text-text-muted"
-                      >/mo</span
-                    ></span
-                  >
-                </div>
-              </div>
-
-              <!-- Features list -->
-              <div class="mt-3 ml-7 flex flex-wrap gap-x-4 gap-y-1">
-                <span
-                  v-for="f in plan.features"
-                  :key="f"
-                  class="text-xs text-text-secondary flex items-center gap-1"
-                >
-                  <svg
-                    class="w-3 h-3 text-success shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M4.5 12.75l6 6 9-13.5"
-                    />
-                  </svg>
-                  {{ f }}
-                </span>
-              </div>
+            <div v-if="plansLoading" class="text-sm text-text-muted py-8 text-center">
+              Loading plans…
             </div>
+            <div
+              v-else-if="!plans.length"
+              class="rounded-xl border border-border bg-surface-alt px-4 py-6 text-sm text-text-secondary text-center space-y-2"
+            >
+              <p class="font-medium text-text">No plans are configured yet.</p>
+              <p class="text-text-muted">
+                On the API host, run
+                <code class="text-xs bg-surface px-1.5 py-0.5 rounded border border-border"
+                  >php artisan db:seed --class=PlanSeeder</code
+                >
+                (or migrate after pulling the latest migrations), then refresh this page.
+              </p>
+            </div>
+            <template v-else>
+              <SubscriptionsPlanSelector
+                v-model="selectedPlanId"
+                :billing-cycle="billingCycle"
+                :plans="plans"
+                :plans-loading="false"
+                :current-plan-id="null"
+                @update:billing-cycle="billingCycle = $event"
+              />
+
+              <div v-if="selectedPaidPlan" class="space-y-4 pt-2">
+                <UiAppFormField label="Name on card" id="onboarding-card-name">
+                  <input
+                    id="onboarding-card-name"
+                    v-model="cardholderName"
+                    type="text"
+                    autocomplete="cc-name"
+                    class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+                    placeholder="Full name"
+                  />
+                </UiAppFormField>
+                <ClientOnly>
+                  <SubscriptionsStripeCardForm
+                    ref="stripeCardRef"
+                    :disabled="creating"
+                  />
+                </ClientOnly>
+              </div>
+            </template>
 
             <!-- Error -->
             <div
@@ -323,7 +286,7 @@
                 type="submit"
                 class="flex-1"
                 :loading="creating"
-                :disabled="creating"
+                :disabled="creating || plansLoading || !selectedPlanId"
               >
                 {{ creating ? "Creating workspace…" : "Get started →" }}
               </UiAppButton>
@@ -343,13 +306,16 @@
 </template>
 
 <script setup lang="ts">
+import type { User } from "~/types";
+
 definePageMeta({
   layout: false,
   middleware: ["auth"],
 });
 
 // If the user already has a tenant, redirect to their workspace
-const { user } = useAuth();
+const { user, authFetch } = useAuth();
+const { stripeError } = useStripe();
 const { hasTenant } = useTenant();
 const { goToWorkspace } = useWorkspaces();
 
@@ -370,13 +336,18 @@ const totalSteps = 3;
 const step = ref(1);
 const creating = ref(false);
 const createError = ref("");
+const billingCycle = ref<"monthly" | "yearly">("monthly");
+const selectedPlanId = ref<number | null>(null);
+const cardholderName = ref("");
+const stripeCardRef = ref<{
+  getPaymentMethodId: (b?: { name?: string; email?: string }) => Promise<string | null>;
+} | null>(null);
 
 const form = reactive({
   businessName: "",
   industry: "",
   teamSize: "",
   role: "",
-  plan: "free_trial" as string,
   currency: "USD",
 });
 
@@ -387,53 +358,34 @@ const teamSizeOptions = [
   { value: "20+", label: "20+ people", icon: "🏗️" },
 ];
 
-const planOptions = [
-  {
-    slug: "free_trial",
-    name: "Free Trial",
-    price: 0,
-    badge: "14 days free",
-    badgeClass: "bg-success/10 text-success",
-    description: "Try everything included in Starter. No credit card needed.",
-    features: [
-      "Up to 25 offers",
-      "Up to 25 invoices",
-      "Up to 25 products",
-      "Up to 25 customers",
-      "Up to 25 orders",
-      "Payments & inventory",
-    ],
-  },
-  {
-    slug: "starter",
-    name: "Starter",
-    price: 19,
-    badge: null,
-    badgeClass: "",
-    description: "Everything you need to run a small business.",
-    features: [
-      "Up to 250 offers",
-      "Up to 250 invoices",
-      "Up to 250 products",
-      "Up to 250 customers",
-      "Up to 250 orders",
-      "Payments & inventory",
-    ],
-  },
-  {
-    slug: "pro",
-    name: "Pro",
-    price: 49,
-    badge: "Most popular",
-    badgeClass: "bg-primary/10 text-primary",
-    description: "Unlimited records, plus storefront and analytics.",
-    features: [
-      "Everything in Starter — unlimited",
-      "Online Storefront",
-      "Reports & Analytics",
-    ],
-  },
-];
+const {
+  plans,
+  plansLoading,
+  fetchPlans,
+  fetchSubscription,
+  subscribeToPaidPlan,
+} = useSubscription();
+
+const selectedPlan = computed(() =>
+  plans.value.find((p) => p.id === selectedPlanId.value) ?? null,
+);
+const selectedPaidPlan = computed(
+  () => selectedPlan.value && !selectedPlan.value.is_free,
+);
+
+onMounted(async () => {
+  try {
+    await fetchPlans(authFetch);
+    if (plans.value.length) {
+      const trial = plans.value.find((p) => p.slug === "free_trial");
+      const first = plans.value[0];
+      const pick = trial ?? first;
+      if (pick) selectedPlanId.value = pick.id;
+    }
+  } catch {
+    createError.value = "Could not load plans. Refresh and try again.";
+  }
+});
 
 /** Generate a URL-safe slug preview from the business name */
 const slugPreview = computed(() => {
@@ -459,20 +411,38 @@ function skipToCreate() {
   step.value = totalSteps;
 }
 
-const { authFetch } = useAuth();
-const { fetchSubscription } = useSubscription();
-
 async function handleCreateWorkspace() {
   creating.value = true;
   createError.value = "";
 
   try {
+    const plan = selectedPlan.value;
+    if (!plan) {
+      createError.value = "Select a plan to continue.";
+      return;
+    }
+
+    let paymentMethodId: string | null = null;
+    if (!plan.is_free) {
+      paymentMethodId =
+        (await stripeCardRef.value?.getPaymentMethodId({
+          name: cardholderName.value.trim() || undefined,
+          email: user.value?.email,
+        })) ?? null;
+      if (!paymentMethodId) {
+        createError.value =
+          stripeError.value || "Enter a valid card for the selected plan.";
+        return;
+      }
+    }
+
     const baseModules = ["invoices", "products", "customers"];
     const proModules = [...baseModules, "storefront", "reports"];
-    const modules = form.plan === "pro" ? proModules : baseModules;
+    const modules = plan.slug === "pro" ? proModules : baseModules;
 
     const response = await authFetch<
-      { subdomain: string } | { data: { subdomain: string } }
+      | { subdomain: string; user?: unknown; tenant?: unknown }
+      | { data: { subdomain: string } }
     >("/api/tenants", {
       method: "POST",
       body: {
@@ -480,14 +450,17 @@ async function handleCreateWorkspace() {
         industry: form.industry || undefined,
         team_size: form.teamSize || undefined,
         role: form.role || undefined,
-        plan: form.plan,
+        plan: plan.slug,
         modules,
         currency: form.currency,
       },
     });
 
-    // Handle all response shapes:
-    // { subdomain }, { data: { subdomain } }, { tenant: { subdomain } }, { user: { tenant: { subdomain } } }
+    const createdUser = (response as { user?: User }).user;
+    if (createdUser) {
+      user.value = createdUser;
+    }
+
     const subdomain =
       (response as any)?.subdomain ??
       (response as any)?.data?.subdomain ??
@@ -495,7 +468,23 @@ async function handleCreateWorkspace() {
       (response as any)?.user?.tenant?.subdomain;
 
     if (subdomain) {
-      // Fetch subscription now so the trial banner is ready on first dashboard load
+      if (paymentMethodId) {
+        try {
+          await subscribeToPaidPlan(
+            plan.id,
+            paymentMethodId,
+            authFetch,
+            billingCycle.value,
+          );
+        } catch (subErr: any) {
+          createError.value =
+            subErr?.data?.message ??
+            subErr?.response?._data?.message ??
+            "Workspace was created but billing failed. Open Plan & Billing in settings to add your card.";
+          goToWorkspace(subdomain);
+          return;
+        }
+      }
       await fetchSubscription(authFetch);
       goToWorkspace(subdomain);
     } else {

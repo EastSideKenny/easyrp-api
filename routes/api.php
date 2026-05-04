@@ -22,9 +22,14 @@ use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebshopSettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Stripe webhook — must match Dashboard URL (default Laravel api prefix → `/api/stripe/webhook`).
+Route::post('/stripe/webhook', [WebhookController::class, 'handleWebhook'])
+    ->withoutMiddleware(['auth:sanctum']);
 
 // Public auth routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -62,6 +67,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/plans/{plan}', [PlanController::class, 'show']);
     Route::get('/features', [FeatureController::class, 'index']);
 
+    // Subscription routes
+    Route::get('/subscription-plans', [SubscriptionController::class, 'listPlans']);
+    Route::get('/subscription-plans/{plan}', [SubscriptionController::class, 'getPlan']);
+
     // Site admin routes
     Route::middleware('site.admin')->prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
@@ -81,9 +90,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tenant', [TenantController::class, 'show']);
         Route::patch('/tenant', [TenantController::class, 'update']);
 
-        // Subscriptions
+        // Subscriptions (tenant-scoped — Cashier handles all Stripe-side state)
         Route::get('/subscriptions', [SubscriptionController::class, 'index']);
-        Route::get('/subscriptions/{subscription}', [SubscriptionController::class, 'show']);
+        Route::get('/subscriptions/current', [SubscriptionController::class, 'current']);
+        Route::post('/subscriptions/subscribe-paid', [SubscriptionController::class, 'subscribeToPaid']);
+        Route::post('/subscriptions/subscribe-free', [SubscriptionController::class, 'subscribeToFree']);
+        Route::post('/subscriptions/change-plan', [SubscriptionController::class, 'changePlan']);
+        Route::delete('/subscriptions', [SubscriptionController::class, 'cancel']);
 
         // Tenant settings (owner/admin only, accessible even with expired trial)
         Route::middleware('tenant.admin')->group(function () {

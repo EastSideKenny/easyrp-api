@@ -1,4 +1,4 @@
-import type { FeatureUsage, TenantSubscription } from '~/types'
+import type { FeatureUsage, TenantSubscription, Plan } from '~/types'
 
 /**
  * Error codes returned in 403 bodies.
@@ -77,6 +77,8 @@ export function handleSubscription403(
 export function useSubscription() {
     const subscription = useState<TenantSubscription | null>('subscription', () => null)
     const subscriptionLoading = useState<boolean>('subscription.loading', () => false)
+    const plans = useState<Plan[]>('subscription.plans', () => [])
+    const plansLoading = ref(false)
 
     // ── Fetch ──────────────────────────────────────────────────────────────
     // authFetch is passed in to avoid a circular dependency with useAuth.
@@ -122,6 +124,115 @@ export function useSubscription() {
 
     function clearSubscription() {
         subscription.value = null
+    }
+
+    // ── Plan subscription methods ──────────────────────────────────────────
+
+    /**
+     * Subscribe to a free plan (no payment required).
+     */
+    async function subscribeToFreePlan(
+        planId: number,
+        authFetch: (url: string, opts?: any) => Promise<any>
+    ): Promise<TenantSubscription | null> {
+        try {
+            const data = await authFetch('/api/subscriptions/subscribe-free', {
+                method: 'POST',
+                body: {
+                    plan_id: planId,
+                },
+            })
+            if (data?.subscription) {
+                subscription.value = data.subscription
+                return data.subscription
+            }
+            return null
+        } catch (err) {
+            throw err
+        }
+    }
+
+    /**
+     * Subscribe to a paid plan (requires payment method).
+     */
+    async function subscribeToPaidPlan(
+        planId: number,
+        paymentMethodId: string,
+        authFetch: (url: string, opts?: any) => Promise<any>,
+        billingCycle: 'monthly' | 'yearly' = 'monthly'
+    ): Promise<TenantSubscription | null> {
+        try {
+            const data = await authFetch('/api/subscriptions/subscribe-paid', {
+                method: 'POST',
+                body: {
+                    plan_id: planId,
+                    payment_method_id: paymentMethodId,
+                    billing_cycle: billingCycle,
+                },
+            })
+            if (data?.subscription) {
+                subscription.value = data.subscription
+                return data.subscription
+            }
+            return null
+        } catch (err) {
+            throw err
+        }
+    }
+
+    /**
+     * Change the tenant's current plan. The backend operates on the tenant — Cashier picks
+     * up the right Stripe subscription internally — so no subscription id is needed.
+     *
+     * Pass `paymentMethodId` to upgrade from a free plan to a paid one.
+     */
+    async function changePlan(
+        newPlanId: number,
+        authFetch: (url: string, opts?: any) => Promise<any>,
+        billingCycle: 'monthly' | 'yearly' = 'monthly',
+        paymentMethodId?: string
+    ): Promise<TenantSubscription | null> {
+        try {
+            const body: Record<string, unknown> = {
+                plan_id: newPlanId,
+                billing_cycle: billingCycle,
+            }
+            if (paymentMethodId) {
+                body.payment_method_id = paymentMethodId
+            }
+
+            const data = await authFetch('/api/subscriptions/change-plan', {
+                method: 'POST',
+                body,
+            })
+            if (data?.subscription) {
+                subscription.value = data.subscription
+                return data.subscription
+            }
+            return null
+        } catch (err) {
+            throw err
+        }
+    }
+
+    /**
+     * Cancel the tenant's current subscription.
+     */
+    async function cancelSubscription(
+        authFetch: (url: string, opts?: any) => Promise<any>,
+        immediately: boolean = false
+    ): Promise<void> {
+        try {
+            await authFetch('/api/subscriptions', {
+                method: 'DELETE',
+                body: {
+                    immediately,
+                },
+            })
+            subscription.value = null
+        } catch (err) {
+            throw err
+        }
     }
 
     // ── Feature / limit helpers ────────────────────────────────────────────
@@ -195,11 +306,53 @@ export function useSubscription() {
 
     const isUrgent = computed(() => isTrialing.value && !isExpired.value && daysLeft.value <= 3)
 
+    function normalizePlanFromApi(raw: Record<string, unknown>): Plan {
+        const monthly = raw.monthly as { price?: number } | undefined
+        const yearly = raw.yearly as { price?: number } | undefined
+        return {
+            id: raw.id as number,
+            name: String(raw.name ?? ''),
+            slug: String(raw.slug ?? ''),
+            price_monthly: monthly?.price ?? 0,
+            price_yearly: yearly?.price ?? 0,
+            currency:
+                typeof raw.currency === 'string'
+                    ? raw.currency.toUpperCase()
+                    : undefined,
+            is_active: true,
+            is_free: Boolean(raw.is_free),
+            features: Array.isArray(raw.features) ? (raw.features as Plan['features']) : undefined,
+            created_at: typeof raw.created_at === 'string' ? raw.created_at : '',
+            updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : '',
+        }
+    }
+
     return {
         subscription,
         subscriptionLoading,
         fetchSubscription,
         clearSubscription,
+        plans,
+        plansLoading,
+        fetchPlans: async (authFetch: (url: string, opts?: any) => Promise<any>): Promise<void> => {
+            try {
+                plansLoading.value = true
+                const data = await authFetch('/api/subscription-plans')
+                if (!Array.isArray(data)) {
+                    plans.value = []
+                    return
+                }
+                plans.value = data.map((row) => normalizePlanFromApi(row as Record<string, unknown>))
+            } catch {
+                plans.value = []
+            } finally {
+                plansLoading.value = false
+            }
+        },
+        subscribeToFreePlan,
+        subscribeToPaidPlan,
+        changePlan,
+        cancelSubscription,
         // feature gating
         usageFor,
         hasFeature,

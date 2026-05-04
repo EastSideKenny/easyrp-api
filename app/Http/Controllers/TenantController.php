@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Plan;
 use App\Models\Tenant;
-use App\Models\TenantSubscription;
 use App\Services\TenantDatabaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +11,8 @@ use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
+    private const REGISTRATION_FREE_TRIAL_DAYS = 14;
+
     /**
      * Create a new tenant (onboarding).
      */
@@ -42,28 +43,34 @@ class TenantController extends Controller
 
         $plan = Plan::where('slug', $validated['plan'] ?? 'free_trial')->where('is_active', true)->firstOrFail();
 
+        $signupPaidChoice = filled($plan->stripe_product_id);
+
+        // Timed free trial only when registering on a non-Stripe (free) plan. Paid Starter/Pro
+        // subscribe immediately via subscribe-paid — no tenant trial or Stripe trial there.
+        $trialEndsAt = null;
+        $freeTrialUsedAt = null;
+
+        if (! $signupPaidChoice) {
+            $trialEndsAt = now()->addDays(self::REGISTRATION_FREE_TRIAL_DAYS);
+            $freeTrialUsedAt = now();
+        }
+
         $tenant = Tenant::create([
-            'name'      => $validated['name'],
-            'slug'      => $subdomain,
-            'subdomain' => $subdomain,
-            'industry'  => $validated['industry'] ?? null,
-            'team_size' => $validated['team_size'] ?? null,
-            'modules'   => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products', 'customers'],
-            'currency'  => strtoupper($validated['currency'] ?? 'USD'),
-            'plan_id'   => $plan->id,
+            'name'               => $validated['name'],
+            'slug'               => $subdomain,
+            'subdomain'          => $subdomain,
+            'industry'           => $validated['industry'] ?? null,
+            'team_size'          => $validated['team_size'] ?? null,
+            'modules'            => ! empty($validated['modules']) ? $validated['modules'] : ['invoices', 'products', 'customers'],
+            'currency'           => strtoupper($validated['currency'] ?? 'USD'),
+            'plan_id'            => $plan->id,
+            'trial_ends_at'      => $trialEndsAt,
+            'free_trial_used_at' => $freeTrialUsedAt,
         ]);
 
         // Create and migrate the tenant's database schema
         TenantDatabaseService::createSchema($tenant);
         TenantDatabaseService::migrateSchema($tenant);
-
-        // Create a 14-day trial subscription on the selected plan
-        TenantSubscription::create([
-            'tenant_id'     => $tenant->id,
-            'plan_id'       => $plan->id,
-            'status'        => 'trialing',
-            'trial_ends_at' => now()->addDays(14),
-        ]);
 
         // Associate user with tenant as owner
         $user->update([

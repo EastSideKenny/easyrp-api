@@ -55,7 +55,11 @@ export interface Plan {
     slug: string
     price_monthly: number
     price_yearly: number
+    /** ISO 4217 — matches Stripe/Cashier; amounts above are in this currency */
+    currency?: string
     is_active: boolean
+    /** From GET /api/subscription-plans — false when Stripe billing applies */
+    is_free?: boolean
     features?: PlanFeature[]
     created_at: string
     updated_at: string

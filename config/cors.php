@@ -1,5 +1,11 @@
 <?php
 
+$allowedOrigins = array_values(array_filter(array_unique([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    env('FRONTEND_URL'),
+])));
+
 return [
 
     /*
@@ -9,7 +15,7 @@ return [
     |
     | Here you may configure your settings for cross-origin resource sharing
     | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
+    | in the browser. You are free to adjust these settings as needed.
     |
     | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
     |
@@ -19,9 +25,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    /*
+     * Do not combine allowed_origins * with supports_credentials true — browsers block it.
+     * This app authenticates via Bearer token in JSON, not cross-origin cookies.
+     */
+    'allowed_origins' => $allowedOrigins !== [] ? $allowedOrigins : ['*'],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://[a-z0-9-]+\\.localhost(:\\d+)?$#i',
+    ],
 
     'allowed_headers' => ['*'],
 
@@ -29,6 +41,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 
 ];

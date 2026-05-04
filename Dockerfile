@@ -29,8 +29,12 @@ COPY . .
 
 RUN composer install --no-interaction --no-dev --optimize-autoloader
 
+COPY docker/entrypoint-php.sh /usr/local/bin/entrypoint-php.sh
+RUN chmod +x /usr/local/bin/entrypoint-php.sh
+
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 9000
 
+ENTRYPOINT ["/usr/local/bin/entrypoint-php.sh"]
 CMD ["php-fpm"]
