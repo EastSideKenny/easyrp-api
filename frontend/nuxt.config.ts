@@ -9,8 +9,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBaseUrl: '', // set via NUXT_PUBLIC_API_BASE_URL in .env (e.g. "http://localhost:8000")
-      appDomain: '', // set via NUXT_PUBLIC_APP_DOMAIN in .env (e.g. "easyrp.com" or "localhost")
+      apiBaseUrl: import.meta.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
+      appDomain: import.meta.env.NUXT_PUBLIC_APP_DOMAIN || 'localhost',
       stripePublicKey: 'pk_test_51TTGDwPoYI1vTyFW2lVSAV6HuhMSnVI23hWzLvQqUJidprmLBDRnQVUZcSAMrttFnRqCBVVEeVOF09J8Jxx7nPCX00Vokzgl8y' // NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (pk_test_… / pk_live_…)
     },
   },
