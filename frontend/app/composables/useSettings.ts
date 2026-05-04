@@ -5,6 +5,12 @@ interface BrandingSettings {
     subdomain: string
     currency: string | null
     theme: string
+    supplier_address_line_1: string | null
+    supplier_address_line_2: string | null
+    supplier_city: string | null
+    supplier_postal_code: string | null
+    supplier_country: string | null
+    supplier_vat_number: string | null
     logo_url: string | null
 }
 
@@ -27,7 +33,17 @@ export function useSettings() {
         return authFetch<BrandingSettings>('/api/settings/branding')
     }
 
-    function updateBranding(data: { name?: string; currency?: string; theme?: string }) {
+    function updateBranding(data: {
+        name?: string
+        currency?: string
+        theme?: string
+        supplier_address_line_1?: string | null
+        supplier_address_line_2?: string | null
+        supplier_city?: string | null
+        supplier_postal_code?: string | null
+        supplier_country?: string | null
+        supplier_vat_number?: string | null
+    }) {
         return authFetch<BrandingSettings>('/api/settings/branding', {
             method: 'PATCH',
             body: data,

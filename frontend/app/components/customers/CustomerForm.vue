@@ -28,7 +28,7 @@
         />
       </UiAppFormField>
 
-      <UiAppFormField label="Tax Number">
+      <UiAppFormField label="VAT Number (optional)">
         <input
           v-model="form.tax_number"
           type="text"

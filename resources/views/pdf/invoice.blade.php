@@ -226,6 +226,15 @@
                     <img src="{{ $logoPath }}" alt="{{ $tenant->name }}" class="company-logo">
                     @endif
                     <div class="company-name">{{ $tenant->name }}</div>
+                    <div class="section-value" style="margin-top:8px;">
+                        @if(!empty($tenant->supplier_address_line_1)){{ $tenant->supplier_address_line_1 }}<br>@endif
+                        @if(!empty($tenant->supplier_address_line_2)){{ $tenant->supplier_address_line_2 }}<br>@endif
+                        @if(!empty($tenant->supplier_city) || !empty($tenant->supplier_postal_code))
+                        {{ $tenant->supplier_city }}@if(!empty($tenant->supplier_city) && !empty($tenant->supplier_postal_code)), @endif{{ $tenant->supplier_postal_code }}<br>
+                        @endif
+                        @if(!empty($tenant->supplier_country)){{ $tenant->supplier_country }}<br>@endif
+                        @if(!empty($tenant->supplier_vat_number))VAT: {{ $tenant->supplier_vat_number }}@endif
+                    </div>
                 </td>
                 <td style="width:50%; text-align:right;">
                     <div class="doc-title">INVOICE</div>
@@ -248,8 +257,10 @@
                         @if($invoice->customer->email)<br>{{ $invoice->customer->email }}@endif
                         @if($invoice->customer->phone)<br>{{ $invoice->customer->phone }}@endif
                         @if($invoice->customer->address_line_1)<br>{{ $invoice->customer->address_line_1 }}@endif
+                        @if($invoice->customer->address_line_2)<br>{{ $invoice->customer->address_line_2 }}@endif
                         @if($invoice->customer->city)<br>{{ $invoice->customer->city }}@if($invoice->customer->postal_code), {{ $invoice->customer->postal_code }}@endif @endif
                         @if($invoice->customer->country)<br>{{ $invoice->customer->country }}@endif
+                        @if($invoice->customer->tax_number)<br>VAT: {{ $invoice->customer->tax_number }}@endif
                         @else
                         <span style="color:#9ca3af;">&mdash;</span>
                         @endif
