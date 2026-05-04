@@ -74,7 +74,17 @@ export interface Feature {
     updated_at: string
 }
 
-export type SubscriptionStatus = 'active' | 'trialing' | 'expired' | 'canceled' | 'past_due'
+export type SubscriptionStatus =
+    | 'active'
+    | 'trialing'
+    | 'expired'
+    | 'canceled'
+    /** Paid subscription canceled at period end — access continues until {@link TenantSubscription.current_period_end}. */
+    | 'canceling'
+    | 'past_due'
+    | 'unpaid'
+    | 'incomplete'
+    | 'paused'
 
 /**
  * Per-feature usage entry returned inside GET /api/subscriptions.

@@ -1,13 +1,22 @@
-import type { FeatureUsage, TenantSubscription, Plan } from '~/types'
+import type {
+    FeatureUsage,
+    TenantSubscription,
+    Plan,
+    SubscriptionStatus,
+} from '~/types'
 
 /**
- * Error codes returned in 403 bodies.
- *   trial_expired        – trial period ended, no paid plan
- *   subscription_required – generic no-subscription check
- *   limit_reached        – tenant is at their plan's record cap for a feature
+ *   trial_expired / subscription_required / billing_required – block ERP access
+ *   limit_reached – plan usage cap
+ *   feature_not_enabled – missing plan_features pivot
  */
-const TRIAL_EXPIRED_CODES = ['trial_expired', 'subscription_required']
+const ACCESS_BLOCKED_CODES = [
+    'trial_expired',
+    'subscription_required',
+    'billing_required',
+]
 const LIMIT_REACHED_CODE = 'limit_reached'
+const FEATURE_LOCKED_CODE = 'feature_not_enabled'
 
 /**
  * Shape of the 403 limit_reached payload:
@@ -19,45 +28,55 @@ export interface LimitReachedError {
     used: number
 }
 
-/**
- * Handle a trial_expired or limit_reached 403 response.
- * Safe to call from any async context (plain function, client-guarded).
- *
- * Returns a discriminated result:
- *   { handled: false }                       – not a relevant 403
- *   { handled: true, type: 'trial_expired' }
- *   { handled: true, type: 'limit_reached', ...LimitReachedError }
- */
-export function handleSubscription403(
-    err: any
-): { handled: false } | { handled: true; type: 'trial_expired' } | ({ handled: true; type: 'limit_reached' } & LimitReachedError) {
+export type Subscription403Handled =
+    | { handled: true; type: 'subscription_lapsed'; sourceError: string }
+    | ({ handled: true; type: 'limit_reached' } & LimitReachedError)
+    | { handled: true; type: 'feature_locked'; feature: string }
+
+export function handleSubscription403(err: any): { handled: false } | Subscription403Handled {
     const status = err?.response?.status ?? err?.statusCode
     if (status !== 403) return { handled: false }
 
     const data = err?.response?._data ?? err?.data ?? {}
     const code: string = data?.error ?? data?.code ?? ''
 
-    // ── trial / subscription expired ──
-    if (TRIAL_EXPIRED_CODES.includes(code)) {
+    if (ACCESS_BLOCKED_CODES.includes(code)) {
         if (import.meta.client) {
             try {
                 const state = useNuxtApp().payload.state
                 const sub = (state['subscription'] ?? null) as TenantSubscription | null
                 if (sub) {
+                    const reason: string = data?.reason ?? ''
+                    let nextStatus: SubscriptionStatus = sub.status
+                    if (code === 'trial_expired') {
+                        nextStatus = 'expired'
+                    } else if (code === 'subscription_required') {
+                        // Avoid the "trial expired" banner for workspaces that never started a trial.
+                        nextStatus = 'canceled'
+                    } else if (code === 'billing_required') {
+                        if (reason === 'past_due') nextStatus = 'past_due'
+                        else if (reason === 'unpaid') nextStatus = 'unpaid'
+                        else if (reason === 'incomplete') nextStatus = 'incomplete'
+                        else nextStatus = 'canceled'
+                    }
                     state['subscription'] = {
                         ...sub,
-                        status: 'expired',
-                        trial_ends_at: new Date(0).toISOString(),
+                        status: nextStatus,
+                        trial_ends_at:
+                            code === 'trial_expired' && typeof data?.trial_ends_at === 'string'
+                                ? data.trial_ends_at
+                                : code === 'trial_expired'
+                                  ? new Date(0).toISOString()
+                                  : sub.trial_ends_at,
                     }
                 }
             } catch {
                 // Nuxt context unavailable — banner updates on next navigation
             }
         }
-        return { handled: true, type: 'trial_expired' }
+        return { handled: true, type: 'subscription_lapsed', sourceError: code }
     }
 
-    // ── limit reached ──
     if (code === LIMIT_REACHED_CODE) {
         return {
             handled: true,
@@ -65,6 +84,14 @@ export function handleSubscription403(
             feature: data?.feature ?? '',
             limit: data?.limit ?? 0,
             used: data?.used ?? 0,
+        }
+    }
+
+    if (code === FEATURE_LOCKED_CODE) {
+        return {
+            handled: true,
+            type: 'feature_locked',
+            feature: data?.feature ?? '',
         }
     }
 
@@ -92,9 +119,13 @@ export function useSubscription() {
             // Backend returns { subscriptions: [...], usage: {...}, trial_ends_at, status }
             if (data?.subscriptions && Array.isArray(data.subscriptions)) {
                 const subs = data.subscriptions as TenantSubscription[]
-                const active = subs.find(
-                    (s) => s.status === 'trialing' || s.status === 'active'
-                ) ?? subs[0] ?? null
+                const active =
+                    subs.find(
+                        (s) => s.status === 'trialing' || s.status === 'active'
+                    ) ??
+                    subs.find((s) => s.status === 'canceling') ??
+                    subs[0] ??
+                    null
 
                 if (active) {
                     subscription.value = {
@@ -222,17 +253,20 @@ export function useSubscription() {
         authFetch: (url: string, opts?: any) => Promise<any>,
         immediately: boolean = false
     ): Promise<void> {
-        try {
-            await authFetch('/api/subscriptions', {
-                method: 'DELETE',
-                body: {
-                    immediately,
-                },
-            })
-            subscription.value = null
-        } catch (err) {
-            throw err
-        }
+        await authFetch('/api/subscriptions', {
+            method: 'DELETE',
+            body: {
+                immediately,
+            },
+        })
+        await fetchSubscription(authFetch)
+    }
+
+    async function resumeSubscription(authFetch: (url: string, opts?: any) => Promise<any>): Promise<void> {
+        await authFetch('/api/subscriptions/resume', {
+            method: 'POST',
+        })
+        await fetchSubscription(authFetch)
     }
 
     // ── Feature / limit helpers ────────────────────────────────────────────
@@ -304,6 +338,23 @@ export function useSubscription() {
         (subscription.value?.status === 'trialing' && daysLeft.value === 0)
     )
 
+    /** Payment failed, unpaid invoice, or checkout incomplete — billing needs attention but messaging stays gentle. */
+    const needsBillingAttention = computed(() => {
+        const s = subscription.value?.status
+        return s === 'past_due' || s === 'unpaid' || s === 'incomplete'
+    })
+
+    /** Fully ended or paused — workspace needs an active subscription again (not cancel-at-period-end). */
+    const needsSubscriptionRenewal = computed(() => {
+        const s = subscription.value?.status
+        return s === 'canceled' || s === 'paused'
+    })
+
+    /** Paid plan scheduled to stop at period end; {@see TenantSubscription.current_period_end}. */
+    const isCancelingAtPeriodEnd = computed(
+        () => subscription.value?.status === 'canceling'
+    )
+
     const isUrgent = computed(() => isTrialing.value && !isExpired.value && daysLeft.value <= 3)
 
     function normalizePlanFromApi(raw: Record<string, unknown>): Plan {
@@ -353,6 +404,7 @@ export function useSubscription() {
         subscribeToPaidPlan,
         changePlan,
         cancelSubscription,
+        resumeSubscription,
         // feature gating
         usageFor,
         hasFeature,
@@ -363,5 +415,8 @@ export function useSubscription() {
         isExpired,
         isUrgent,
         daysLeft,
+        needsBillingAttention,
+        needsSubscriptionRenewal,
+        isCancelingAtPeriodEnd,
     }
 }

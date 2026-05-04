@@ -61,7 +61,11 @@ export function useAuth() {
             // Intercept plan-gating 403s so the UI reacts immediately.
             // handleSubscription403 is a plain function — no Nuxt context needed.
             const result = handleSubscription403(err)
-            if (result.handled && result.type === 'trial_expired' && import.meta.client) {
+            if (
+                result.handled &&
+                (result.type === 'subscription_lapsed' || result.type === 'feature_locked') &&
+                import.meta.client
+            ) {
                 navigateTo('/settings/billing')
             }
             // limit_reached is handled at the call site (show modal/toast with context).

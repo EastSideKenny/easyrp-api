@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use Carbon\Carbon;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Laravel\Cashier\Subscription;
+use Stripe\Subscription as StripeSubscription;
 
 class SubscriptionService
 {
@@ -275,6 +276,22 @@ class SubscriptionService
     }
 
     /**
+     * Undo a cancel-at-period-end while the Cashier grace window is still open.
+     *
+     * @throws \LogicException|\RuntimeException
+     */
+    public function resumeSubscription(Tenant $tenant): Subscription
+    {
+        $current = $tenant->subscription(self::SUBSCRIPTION_TYPE);
+
+        if (! $current) {
+            throw new \RuntimeException('No subscription found.');
+        }
+
+        return $current->resume();
+    }
+
+    /**
      * Whether the tenant currently has access — paid Cashier sub valid OR generic trial active OR
      * a free plan with no expiry.
      */
@@ -282,20 +299,112 @@ class SubscriptionService
     {
         $sub = $tenant->subscription(self::SUBSCRIPTION_TYPE);
 
-        if ($sub && $sub->valid()) {
-            return true;
+        if ($sub) {
+            return $sub->valid();
         }
 
         if (! $tenant->plan_id) {
             return false;
         }
 
-        // Free plan — check the generic trial. Null trial = no expiry (e.g. seeded plan).
+        $plan = Plan::query()->find($tenant->plan_id);
+
+        // Paid Stripe plan but no usable Cashier row — incomplete checkout, churned sub, etc.
+        if ($plan && $plan->stripe_product_id) {
+            return false;
+        }
+
+        // Free plan — check the generic trial. Null trial = no expiry (e.g. post-downgrade free tier).
         if (! $tenant->trial_ends_at) {
             return true;
         }
 
         return $tenant->trial_ends_at->isFuture();
+    }
+
+    /**
+     * Human-readable denial for middleware when {@see tenantHasActiveAccess} is false.
+     *
+     * @return array{message: string, error: string, reason?: string, trial_ends_at?: string}
+     */
+    public function describeAccessDenial(Tenant $tenant): array
+    {
+        $sub = $tenant->subscription(self::SUBSCRIPTION_TYPE);
+
+        if ($sub && ! $sub->valid()) {
+            $status = $sub->stripe_status;
+
+            if ($sub->pastDue() || $status === StripeSubscription::STATUS_PAST_DUE) {
+                return [
+                    'message' => 'Your last subscription payment did not go through. Update your payment method under Plan & Billing to restore full access.',
+                    'error' => 'billing_required',
+                    'reason' => 'past_due',
+                ];
+            }
+
+            if ($status === StripeSubscription::STATUS_UNPAID) {
+                return [
+                    'message' => 'Your subscription has an unpaid invoice. Visit Plan & Billing to settle payment and continue using EasyRP.',
+                    'error' => 'billing_required',
+                    'reason' => 'unpaid',
+                ];
+            }
+
+            if ($sub->incomplete() || $status === StripeSubscription::STATUS_INCOMPLETE) {
+                return [
+                    'message' => 'Your subscription setup was not finished. Open Plan & Billing to complete checkout.',
+                    'error' => 'billing_required',
+                    'reason' => 'incomplete',
+                ];
+            }
+
+            if ($sub->ended()) {
+                return [
+                    'message' => 'This workspace no longer has an active subscription. Choose a plan under Plan & Billing to continue.',
+                    'error' => 'billing_required',
+                    'reason' => 'canceled',
+                ];
+            }
+
+            return [
+                'message' => 'Your subscription is not active. Visit Plan & Billing to fix billing or choose a plan.',
+                'error' => 'billing_required',
+                'reason' => $status ?: 'inactive',
+            ];
+        }
+
+        if (! $tenant->plan_id) {
+            return [
+                'message' => 'Choose a plan for this workspace to continue.',
+                'error' => 'subscription_required',
+                'reason' => 'no_plan',
+            ];
+        }
+
+        $plan = Plan::query()->find($tenant->plan_id);
+
+        if ($plan && $plan->stripe_product_id) {
+            return [
+                'message' => 'Activate or renew your subscription under Plan & Billing to keep using EasyRP.',
+                'error' => 'billing_required',
+                'reason' => 'no_active_subscription',
+            ];
+        }
+
+        if ($tenant->trial_ends_at && $tenant->trial_ends_at->isPast()) {
+            return [
+                'message' => 'Your free trial has ended. Upgrade under Plan & Billing to keep your data and restore access.',
+                'error' => 'trial_expired',
+                'reason' => 'trial_ended',
+                'trial_ends_at' => $tenant->trial_ends_at->toIso8601String(),
+            ];
+        }
+
+        return [
+            'message' => 'Subscription access could not be verified. Open Plan & Billing to review your workspace.',
+            'error' => 'subscription_required',
+            'reason' => 'unknown',
+        ];
     }
 
     /**
@@ -310,7 +419,21 @@ class SubscriptionService
             return Plan::with('features')->find($sub->plan_id);
         }
 
-        return $tenant->plan_id ? Plan::with('features')->find($tenant->plan_id) : null;
+        if ($sub) {
+            return null;
+        }
+
+        if (! $tenant->plan_id) {
+            return null;
+        }
+
+        $plan = Plan::with('features')->find($tenant->plan_id);
+
+        if ($plan && $plan->stripe_product_id) {
+            return null;
+        }
+
+        return $plan;
     }
 
     /**
@@ -327,11 +450,14 @@ class SubscriptionService
             // Prefer Stripe's `status` over local `trial_ends_at`: after "end trial" or
             // Dashboard edits, `trial_ends_at` can still be future until webhooks run.
             $stripeStatus = $sub->stripe_status;
+
+            // Cancel at period end — Cashier keeps access until `ends_at` ({@see Subscription::valid()}).
+            if ($sub->onGracePeriod()) {
+                return 'canceling';
+            }
+
             if ($stripeStatus === 'trialing') {
                 return 'trialing';
-            }
-            if ($sub->onGracePeriod()) {
-                return 'canceled';
             }
             if ($stripeStatus === 'past_due' || $sub->pastDue()) {
                 return 'past_due';

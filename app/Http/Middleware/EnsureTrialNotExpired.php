@@ -12,7 +12,7 @@ class EnsureTrialNotExpired
     public function __construct(private readonly SubscriptionService $subscriptions) {}
 
     /**
-     * Block access if the tenant has no active subscription or an expired trial.
+     * Block ERP features when billing is inactive: expired trial, failed payment, canceled sub, etc.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -32,13 +32,6 @@ class EnsureTrialNotExpired
             return $next($request);
         }
 
-        $sub = $tenant->subscription(SubscriptionService::SUBSCRIPTION_TYPE);
-        $trialEndsAt = $sub?->trial_ends_at ?? $tenant->trial_ends_at;
-
-        return response()->json([
-            'message'       => 'Your free trial has expired. Please upgrade to continue.',
-            'error'         => 'trial_expired',
-            'trial_ends_at' => $trialEndsAt?->toIso8601String(),
-        ], 403);
+        return response()->json($this->subscriptions->describeAccessDenial($tenant), 403);
     }
 }

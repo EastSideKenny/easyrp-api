@@ -196,6 +196,33 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * POST /api/subscriptions/resume — undo cancel-at-period-end during the grace window.
+     */
+    public function resume(Request $request): JsonResponse
+    {
+        $tenant = $request->user()->tenant;
+
+        if (! $tenant) {
+            return response()->json(['message' => 'No tenant found.'], 404);
+        }
+
+        try {
+            $this->subscriptionService->resumeSubscription($tenant);
+
+            return response()->json([
+                'success'      => true,
+                'message'      => 'Your subscription will continue renewing as usual.',
+                'subscription' => $this->subscriptionService->serializeSubscription($tenant->refresh()),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    /**
      * DELETE /api/subscriptions
      */
     public function cancel(Request $request): JsonResponse

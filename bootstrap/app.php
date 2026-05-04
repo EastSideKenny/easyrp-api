@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'trial.active' => \App\Http\Middleware\EnsureTrialNotExpired::class,
+            'plan.feature' => \App\Http\Middleware\EnsurePlanFeatureAccess::class,
             'tenant.schema' => \App\Http\Middleware\SetTenantSchema::class,
             'site.admin' => \App\Http\Middleware\EnsureSiteAdmin::class,
             'tenant.admin' => \App\Http\Middleware\EnsureTenantAdmin::class,
