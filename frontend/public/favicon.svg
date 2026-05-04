@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Matches landing nav: rounded-xl + bg-linear-to-br from-primary to-primary-light -->
+  <defs>
+    <linearGradient
+      id="easyrp-mark"
+      x1="6"
+      y1="6"
+      x2="26"
+      y2="26"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="10" fill="url(#easyrp-mark)"/>
+  <!-- Bold “E” (no webfont — consistent with ui AppBadge-style mark) -->
+  <path
+    fill="#ffffff"
+    d="M10 10h12v3h-9v2.5h7.5v3H13V21h9v3H10V10z"
+  />
+</svg>

@@ -1,3 +1,5 @@
+import { MARKETING_INDEXABLE_PATHS } from '~/constants/marketing-paths'
+
 /**
  * Routes that are allowed on the root domain (no tenant required).
  * Everything else (dashboard, invoices, products, etc.) requires a tenant.
@@ -12,12 +14,16 @@ const PUBLIC_ROUTES = [
     '/tenant-error',
 ]
 
+/** SEO landing guides + home — readable without auth (same list as sitemap indexables). */
+const MARKETING_PUBLIC_PATHS = new Set<string>(MARKETING_INDEXABLE_PATHS)
+
 /**
  * Check if a route path matches a public route.
  * Matches exact paths and also /store routes and /offers/{token}/respond.
  */
 function isPublicRoute(path: string): boolean {
     if (PUBLIC_ROUTES.includes(path)) return true
+    if (MARKETING_PUBLIC_PATHS.has(path)) return true
     if (path.startsWith('/store')) return true
     if (/^\/offers\/[^/]+\/respond$/.test(path)) return true
     return false
