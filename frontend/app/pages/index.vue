@@ -22,12 +22,10 @@
                 <p
                     class="mt-6 text-lg sm:text-xl text-text-secondary max-w-xl mx-auto leading-relaxed animate-fade-in-up stagger-2"
                 >
-                    EasyRP is quote to invoice automation software for
-                    freelancers and small businesses: create proposals with our
-                    online quote generator, send quotes customers accept from
-                    email, and convert approvals into invoices automatically —
-                    alongside inventory, payments, and reporting when you need
-                    them.
+                    Quote-to-invoice automation for freelancers and small
+                    businesses: send quotes customers accept from email, turn
+                    approvals into invoices, and add inventory, payments, and
+                    reporting when you're ready.
                 </p>
 
                 <nav
@@ -68,9 +66,13 @@
                 <div
                     class="flex flex-col sm:flex-row justify-center gap-3 mt-8 animate-fade-in-up stagger-3"
                 >
-                    <UiAppButton size="lg" to="/auth/register">
+                    <button
+                        type="button"
+                        class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/20 text-base px-6 py-3 bg-primary text-white hover:bg-primary-dark hover:shadow-elevated"
+                        @click="navigateTo('/auth/register')"
+                    >
                         Start for free →
-                    </UiAppButton>
+                    </button>
                 </div>
 
                 <p
