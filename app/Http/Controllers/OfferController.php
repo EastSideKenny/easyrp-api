@@ -211,6 +211,7 @@ class OfferController extends Controller
         }
 
         // Send offer email to customer when status changes to 'sent'
+        $mailWarning = null;
         if (isset($validated['status']) && $validated['status'] === 'sent' && $offer->customer?->email) {
             if (! $offer->token) {
                 $token = Str::random(64);
@@ -218,7 +219,12 @@ class OfferController extends Controller
                 $this->storeOfferTokenLookup($token, $request->user()->tenant_id, $offer->id);
             }
             $offer->load('items');
-            Mail::to($offer->customer->email)->queue(new OfferMail($offer));
+            try {
+                Mail::to($offer->customer->email)->queue(new OfferMail($offer));
+            } catch (\Throwable $e) {
+                report($e);
+                $mailWarning = 'Offer saved but email could not be queued.';
+            }
         }
 
         // Record audit trail when status changes to accepted or declined
@@ -237,6 +243,9 @@ class OfferController extends Controller
         $response = $offer->toArray();
         if (isset($pdfError) && $pdfError !== null) {
             $response['pdf_warning'] = 'PDF generation failed: ' . $pdfError;
+        }
+        if ($mailWarning !== null) {
+            $response['mail_warning'] = $mailWarning;
         }
 
         return response()->json($response);
@@ -292,7 +301,16 @@ class OfferController extends Controller
             $pdfService->generate($offer);
         }
 
-        Mail::to($offer->customer->email)->queue(new OfferMail($offer));
+        try {
+            Mail::to($offer->customer->email)->queue(new OfferMail($offer));
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json([
+                'message' => 'Offer marked as sent, but email delivery failed. Please verify mail settings.',
+                'offer' => $offer,
+                'mail_warning' => $e->getMessage(),
+            ], 202);
+        }
 
         return response()->json([
             'message' => 'Offer sent to ' . $offer->customer->email,
