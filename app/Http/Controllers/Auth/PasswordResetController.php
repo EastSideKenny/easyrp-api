@@ -37,7 +37,13 @@ class PasswordResetController extends Controller
 
         $resetUrl = config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
 
-        Mail::to($user->email)->queue(new PasswordResetMail($resetUrl, $user->name));
+        try {
+            Mail::to($user->email)->queue(new PasswordResetMail($resetUrl, $user->name));
+        } catch (\Throwable $e) {
+            report($e);
+            // Keep the generic success response to avoid user enumeration
+            // and prevent mail transport issues from breaking the endpoint.
+        }
 
         return response()->json(['message' => 'If the email exists, a reset link has been sent.']);
     }
