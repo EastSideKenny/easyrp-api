@@ -9,7 +9,7 @@ import type { User } from '~/types'
  */
 export function useWorkspaces() {
     const config = useRuntimeConfig()
-    const appDomain = config.public.appDomain as string
+    const appDomain = (config.public.appDomain as string || '').trim()
 
     /**
      * Build the full URL to a tenant's subdomain.
@@ -20,9 +20,10 @@ export function useWorkspaces() {
      *   → "http://acme.localhost:3000/dashboard" (dev)
      */
     function buildTenantUrl(subdomain: string, path: string = '/dashboard'): string {
-        const { protocol, port } = useRequestURL()
+        const { protocol, hostname, port } = useRequestURL()
+        const baseDomain = appDomain || hostname
         const portSuffix = port ? `:${port}` : ''
-        return `${protocol}//${subdomain}.${appDomain}${portSuffix}${path}`
+        return `${protocol}//${subdomain}.${baseDomain}${portSuffix}${path}`
     }
 
     /**
