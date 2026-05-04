@@ -35,7 +35,7 @@ class PasswordResetController extends Controller
             ['token' => Hash::make($token), 'created_at' => now()],
         );
 
-        $resetUrl = config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+        $resetUrl = config('app.frontend_url') . '/auth/reset-password?token=' . $token . '&email=' . urlencode($user->email);
 
         try {
             Mail::to($user->email)->queue(new PasswordResetMail($resetUrl, $user->name));
