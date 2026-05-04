@@ -32,7 +32,30 @@ This will add the necessary Stripe columns to your `tenants` and `plans` tables:
 
 #### Update Plans in Your Database
 
-Use one of these approaches:
+Set the Stripe plan IDs in `.env` (or your server env vars):
+
+```bash
+STRIPE_STARTER_PRODUCT_ID=prod_xxxxx
+STRIPE_STARTER_MONTHLY_PRICE_ID=price_xxx
+STRIPE_STARTER_YEARLY_PRICE_ID=price_yyy
+
+STRIPE_PRO_PRODUCT_ID=prod_yyyyy
+STRIPE_PRO_MONTHLY_PRICE_ID=price_aaa
+STRIPE_PRO_YEARLY_PRICE_ID=price_bbb
+```
+
+Then run:
+
+```bash
+php artisan db:seed --class=UpdatePlansWithStripeIds
+```
+
+If your config is cached, refresh it first:
+
+```bash
+php artisan config:clear
+```
+Alternative manual approaches:
 
 **Option A: Database GUI**
 

@@ -12,16 +12,22 @@ class UpdatePlansWithStripeIds extends Seeder
      */
     public function run(): void
     {
-        Plan::where('slug', 'starter')->update([
-            'stripe_product_id' => 'prod_URwczrTNMocYiP',
-            'stripe_price_monthly_id' => 'price_1TT2jSLIqjurDXdCDnPLBrlM',
-            'stripe_price_yearly_id' => 'price_1TT2jSLIqjurDXdCBsaDKB9n',
-        ]);
+        $stripePlanConfig = config('services.stripe.plans', []);
 
-        Plan::where('slug', 'pro')->update([
-            'stripe_product_id' => 'prod_US991j1UbIH22u',
-            'stripe_price_monthly_id' => 'price_1TTErTLIqjurDXdCm60ayfAT',
-            'stripe_price_yearly_id' => 'price_1TTErqLIqjurDXdCGHVupZ2d',
-        ]);
+        foreach ($stripePlanConfig as $slug => $ids) {
+            $productId = $ids['product_id'] ?? null;
+            $monthlyPriceId = $ids['monthly_price_id'] ?? null;
+            $yearlyPriceId = $ids['yearly_price_id'] ?? null;
+
+            if (!$productId || !$monthlyPriceId || !$yearlyPriceId) {
+                continue;
+            }
+
+            Plan::where('slug', $slug)->update([
+                'stripe_product_id' => $productId,
+                'stripe_price_monthly_id' => $monthlyPriceId,
+                'stripe_price_yearly_id' => $yearlyPriceId,
+            ]);
+        }
     }
 }
