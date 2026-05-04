@@ -1,10 +1,23 @@
 <?php
 
+$frontendUrl = env('FRONTEND_URL');
+$appUrl = env('APP_URL');
+
 $allowedOrigins = array_values(array_filter(array_unique([
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    env('FRONTEND_URL'),
+    $frontendUrl,
+    $appUrl,
 ])));
+
+$frontendHost = $frontendUrl ? parse_url($frontendUrl, PHP_URL_HOST) : null;
+$appHost = $appUrl ? parse_url($appUrl, PHP_URL_HOST) : null;
+
+$dynamicDomainPatterns = [];
+foreach (array_filter(array_unique([$frontendHost, $appHost])) as $host) {
+    $escapedHost = preg_quote($host, '#');
+    $dynamicDomainPatterns[] = "#^https?://([a-z0-9-]+\\.)?{$escapedHost}(:\\d+)?$#i";
+}
 
 return [
 
@@ -31,9 +44,9 @@ return [
      */
     'allowed_origins' => $allowedOrigins !== [] ? $allowedOrigins : ['*'],
 
-    'allowed_origins_patterns' => [
+    'allowed_origins_patterns' => array_values(array_filter(array_merge([
         '#^https?://[a-z0-9-]+\\.localhost(:\\d+)?$#i',
-    ],
+    ], $dynamicDomainPatterns))),
 
     'allowed_headers' => ['*'],
 
