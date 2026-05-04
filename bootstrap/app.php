@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Auth\AuthenticationException;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,5 +29,17 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(fn(\Illuminate\Http\Request $request) => $request->is('api/*'));
+        $exceptions->shouldRenderJsonWhen(fn(\Illuminate\Http\Request $request) =>
+            $request->expectsJson() || $request->is('api/*')
+        );
+
+        $exceptions->render(function (AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+
+            return null;
+        });
     })->create();
