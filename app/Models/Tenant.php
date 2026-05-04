@@ -9,7 +9,30 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Cashier\Billable;
 
-#[Fillable(['name', 'slug', 'subdomain', 'industry', 'team_size', 'modules', 'currency', 'plan_id', 'is_active', 'logo_path', 'theme', 'stripe_id', 'pm_type', 'pm_last_four', 'trial_ends_at', 'free_trial_used_at'])]
+#[Fillable([
+    'name',
+    'slug',
+    'subdomain',
+    'industry',
+    'team_size',
+    'modules',
+    'currency',
+    'plan_id',
+    'is_active',
+    'logo_path',
+    'theme',
+    'supplier_address_line_1',
+    'supplier_address_line_2',
+    'supplier_city',
+    'supplier_postal_code',
+    'supplier_country',
+    'supplier_vat_number',
+    'stripe_id',
+    'pm_type',
+    'pm_last_four',
+    'trial_ends_at',
+    'free_trial_used_at',
+])]
 class Tenant extends Model
 {
     /**

@@ -41,12 +41,20 @@
                     and generate invoices automatically with EasyRP.
                 </p>
                 <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-                    <UiAppButton size="lg" to="/auth/register">
+                    <button
+                        type="button"
+                        class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/20 text-base px-6 py-3 bg-primary text-white hover:bg-primary-dark hover:shadow-elevated"
+                        @click="navigateTo('/auth/register')"
+                    >
                         Start for free →
-                    </UiAppButton>
-                    <UiAppButton variant="outline" size="lg" to="/auth/login">
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/10 text-base px-6 py-3 bg-surface text-text border border-border hover:border-text-muted hover:shadow-card"
+                        @click="navigateTo('/auth/login')"
+                    >
                         Sign in
-                    </UiAppButton>
+                    </button>
                 </div>
             </div>
         </section>

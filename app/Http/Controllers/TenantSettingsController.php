@@ -20,6 +20,12 @@ class TenantSettingsController extends Controller
             'subdomain' => $tenant->subdomain,
             'currency' => $tenant->currency,
             'theme' => $tenant->theme,
+            'supplier_address_line_1' => $tenant->supplier_address_line_1,
+            'supplier_address_line_2' => $tenant->supplier_address_line_2,
+            'supplier_city' => $tenant->supplier_city,
+            'supplier_postal_code' => $tenant->supplier_postal_code,
+            'supplier_country' => $tenant->supplier_country,
+            'supplier_vat_number' => $tenant->supplier_vat_number,
             'logo_url' => $tenant->logo_path ? Storage::disk('public')->url($tenant->logo_path) : null,
         ]);
     }
@@ -35,6 +41,12 @@ class TenantSettingsController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'currency' => ['sometimes', 'string', 'size:3'],
             'theme' => ['sometimes', 'string', 'in:default,blue,green,purple,rose,orange'],
+            'supplier_address_line_1' => ['nullable', 'string', 'max:255'],
+            'supplier_address_line_2' => ['nullable', 'string', 'max:255'],
+            'supplier_city' => ['nullable', 'string', 'max:255'],
+            'supplier_postal_code' => ['nullable', 'string', 'max:255'],
+            'supplier_country' => ['nullable', 'string', 'max:255'],
+            'supplier_vat_number' => ['nullable', 'string', 'max:255'],
         ]);
 
         if (isset($validated['currency'])) {
@@ -49,6 +61,12 @@ class TenantSettingsController extends Controller
             'subdomain' => $tenant->subdomain,
             'currency' => $tenant->currency,
             'theme' => $tenant->theme,
+            'supplier_address_line_1' => $tenant->supplier_address_line_1,
+            'supplier_address_line_2' => $tenant->supplier_address_line_2,
+            'supplier_city' => $tenant->supplier_city,
+            'supplier_postal_code' => $tenant->supplier_postal_code,
+            'supplier_country' => $tenant->supplier_country,
+            'supplier_vat_number' => $tenant->supplier_vat_number,
             'logo_url' => $tenant->logo_path ? Storage::disk('public')->url($tenant->logo_path) : null,
         ]);
     }

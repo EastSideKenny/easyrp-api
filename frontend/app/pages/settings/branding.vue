@@ -2,7 +2,7 @@
     <div class="max-w-3xl mx-auto space-y-8">
         <UiAppSectionHeader
             title="Branding & General"
-            description="Customize your organization's name, theme, and logo."
+            description="Customize your organization's name, theme, logo, and company details used on PDFs."
         />
 
         <!-- Loading -->
@@ -65,6 +65,59 @@
                             <option value="BRL">BRL — Brazilian Real</option>
                             <option value="INR">INR — Indian Rupee</option>
                         </select>
+                    </UiAppFormField>
+                </div>
+            </UiAppCard>
+
+            <UiAppCard title="Company Details (for invoices and offers)">
+                <div class="grid sm:grid-cols-2 gap-5">
+                    <UiAppFormField label="Address Line 1">
+                        <input
+                            v-model="form.supplier_address_line_1"
+                            type="text"
+                            placeholder="123 Main St"
+                            class="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder-text-muted bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                        />
+                    </UiAppFormField>
+                    <UiAppFormField label="Address Line 2">
+                        <input
+                            v-model="form.supplier_address_line_2"
+                            type="text"
+                            placeholder="Suite 100"
+                            class="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder-text-muted bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                        />
+                    </UiAppFormField>
+                    <UiAppFormField label="City">
+                        <input
+                            v-model="form.supplier_city"
+                            type="text"
+                            placeholder="Amsterdam"
+                            class="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder-text-muted bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                        />
+                    </UiAppFormField>
+                    <UiAppFormField label="Postal Code">
+                        <input
+                            v-model="form.supplier_postal_code"
+                            type="text"
+                            placeholder="1012AB"
+                            class="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder-text-muted bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                        />
+                    </UiAppFormField>
+                    <UiAppFormField label="Country">
+                        <input
+                            v-model="form.supplier_country"
+                            type="text"
+                            placeholder="Netherlands"
+                            class="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder-text-muted bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                        />
+                    </UiAppFormField>
+                    <UiAppFormField label="VAT Number (optional)">
+                        <input
+                            v-model="form.supplier_vat_number"
+                            type="text"
+                            placeholder="NL123456789B01"
+                            class="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-text placeholder-text-muted bg-surface-alt focus:bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                        />
                     </UiAppFormField>
                 </div>
             </UiAppCard>
@@ -179,6 +232,12 @@ const form = reactive({
     name: "",
     currency: "EUR",
     theme: "default",
+    supplier_address_line_1: "",
+    supplier_address_line_2: "",
+    supplier_city: "",
+    supplier_postal_code: "",
+    supplier_country: "",
+    supplier_vat_number: "",
 });
 
 onMounted(async () => {
@@ -187,6 +246,12 @@ onMounted(async () => {
         form.name = data.name ?? "";
         form.currency = data.currency ?? "EUR";
         form.theme = data.theme ?? "default";
+        form.supplier_address_line_1 = data.supplier_address_line_1 ?? "";
+        form.supplier_address_line_2 = data.supplier_address_line_2 ?? "";
+        form.supplier_city = data.supplier_city ?? "";
+        form.supplier_postal_code = data.supplier_postal_code ?? "";
+        form.supplier_country = data.supplier_country ?? "";
+        form.supplier_vat_number = data.supplier_vat_number ?? "";
         logoUrl.value = data.logo_url;
     } catch {
         toast.error("Failed to load settings.");
@@ -203,6 +268,12 @@ async function handleSave() {
             name: form.name,
             currency: form.currency,
             theme: form.theme,
+            supplier_address_line_1: form.supplier_address_line_1 || null,
+            supplier_address_line_2: form.supplier_address_line_2 || null,
+            supplier_city: form.supplier_city || null,
+            supplier_postal_code: form.supplier_postal_code || null,
+            supplier_country: form.supplier_country || null,
+            supplier_vat_number: form.supplier_vat_number || null,
         });
         logoUrl.value = data.logo_url;
         // Sync tenant state so theme plugin and sidebar react immediately

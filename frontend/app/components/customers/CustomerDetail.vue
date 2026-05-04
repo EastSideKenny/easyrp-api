@@ -60,7 +60,7 @@
             <dd class="font-medium text-text">{{ customer.phone || "—" }}</dd>
           </div>
           <div>
-            <dt class="text-text-muted">Tax Number</dt>
+            <dt class="text-text-muted">VAT Number</dt>
             <dd class="font-medium text-text">
               {{ customer.tax_number || "—" }}
             </dd>

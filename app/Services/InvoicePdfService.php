@@ -20,7 +20,15 @@ class InvoicePdfService
 
         $tenantId = auth()->user()?->tenant_id ?? $this->resolveTenantId();
         $tenant = auth()->user()?->tenant ?? ($tenantId ? Tenant::find($tenantId) : null);
-        $tenant ??= (object) ['name' => config('app.name')];
+        $tenant ??= (object) [
+            'name' => config('app.name'),
+            'supplier_address_line_1' => null,
+            'supplier_address_line_2' => null,
+            'supplier_city' => null,
+            'supplier_postal_code' => null,
+            'supplier_country' => null,
+            'supplier_vat_number' => null,
+        ];
         $tenantPath = $tenantId ? (string) $tenantId : 'shared';
 
         $logoPath = null;
