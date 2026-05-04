@@ -154,11 +154,21 @@
             class="text-sm text-text-secondary cursor-pointer select-none leading-snug"
           >
             I agree to the
-            <a href="#" class="text-primary hover:underline"
-              >Terms of Service</a
+            <button
+              type="button"
+              class="text-primary hover:underline"
+              @click="showTermsModal = true"
             >
+              Terms of Service
+            </button>
             and
-            <a href="#" class="text-primary hover:underline">Privacy Policy</a>
+            <button
+              type="button"
+              class="text-primary hover:underline"
+              @click="showPrivacyModal = true"
+            >
+              Privacy Policy
+            </button>
           </label>
         </div>
 
@@ -172,38 +182,6 @@
         </UiAppButton>
       </form>
 
-      <!-- Divider -->
-      <div class="flex items-center gap-3">
-        <div class="flex-1 h-px bg-border" />
-        <span class="text-xs text-text-muted">or</span>
-        <div class="flex-1 h-px bg-border" />
-      </div>
-
-      <!-- Social signup -->
-      <div class="space-y-2.5">
-        <UiAppButton variant="outline" class="w-full">
-          <svg class="w-4 h-4" viewBox="0 0 24 24">
-            <path
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-              fill="#4285F4"
-            />
-            <path
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              fill="#34A853"
-            />
-            <path
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              fill="#FBBC05"
-            />
-            <path
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              fill="#EA4335"
-            />
-          </svg>
-          Continue with Google
-        </UiAppButton>
-      </div>
-
       <!-- Sign in link -->
       <p class="text-center text-sm text-text-secondary">
         Already have an account?
@@ -214,6 +192,102 @@
           Sign in
         </NuxtLink>
       </p>
+    </div>
+
+    <!-- Terms modal -->
+    <div
+      v-if="showTermsModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      @click.self="showTermsModal = false"
+    >
+      <div
+        class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-border shadow-elevated p-6"
+      >
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <h2 class="text-xl font-bold text-text">Terms of Service</h2>
+          <button
+            type="button"
+            class="text-text-muted hover:text-text"
+            @click="showTermsModal = false"
+          >
+            Close
+          </button>
+        </div>
+
+        <div class="space-y-4 text-sm text-text-secondary leading-relaxed">
+          <p>
+            EasyRP provides business software for invoicing, orders, inventory,
+            and storefront management. By creating an account, you agree to use
+            the service lawfully and protect your login credentials.
+          </p>
+          <p>
+            You are responsible for the data you enter, including customer and
+            financial records. We process your data to provide the service,
+            secure accounts, and support billing.
+          </p>
+          <p>
+            Paid plans renew automatically unless canceled before the next
+            billing date. You can manage your subscription from your account
+            settings.
+          </p>
+          <p>
+            We may suspend accounts for abuse, fraud, or serious violations.
+            You can request account closure and data export through support.
+          </p>
+          <p class="text-text">
+            By continuing, you confirm that you have the authority to use this
+            service on behalf of your business.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy modal -->
+    <div
+      v-if="showPrivacyModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      @click.self="showPrivacyModal = false"
+    >
+      <div
+        class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-border shadow-elevated p-6"
+      >
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <h2 class="text-xl font-bold text-text">Privacy Policy</h2>
+          <button
+            type="button"
+            class="text-text-muted hover:text-text"
+            @click="showPrivacyModal = false"
+          >
+            Close
+          </button>
+        </div>
+
+        <div class="space-y-4 text-sm text-text-secondary leading-relaxed">
+          <p>
+            We collect account details (such as name and email), workspace
+            settings, and data you store in EasyRP to deliver the platform.
+          </p>
+          <p>
+            We process personal data under GDPR legal bases including contract
+            performance, legitimate interests (security and fraud prevention),
+            and legal obligations.
+          </p>
+          <p>
+            We use trusted subprocessors (for example hosting, email, and
+            payment providers) only as needed to run the service. Data is
+            protected with access controls and security monitoring.
+          </p>
+          <p>
+            You can request access, correction, export, restriction, or
+            deletion of your personal data. You can also object to processing
+            where applicable.
+          </p>
+          <p>
+            For privacy requests, contact support and include your account email
+            so we can verify ownership and respond within GDPR timelines.
+          </p>
+        </div>
+      </div>
     </div>
   </NuxtLayout>
 </template>
@@ -246,6 +320,8 @@ const form = reactive({
 const loading = ref(false);
 const error = ref("");
 const showPassword = ref(false);
+const showTermsModal = ref(false);
+const showPrivacyModal = ref(false);
 
 const passwordStrength = computed(() => {
   const p = form.password;

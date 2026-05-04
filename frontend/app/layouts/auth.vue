@@ -37,39 +37,10 @@
           >
         </NuxtLink>
 
-        <div class="space-y-6 max-w-md">
-          <blockquote class="text-xl font-medium text-white/90 leading-relaxed">
-            "EasyRP replaced three different tools for us. Invoicing, inventory
-            tracking, and our online store — all in one clean interface."
-          </blockquote>
-          <div class="flex items-center gap-3">
-            <div
-              class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
-            >
-              <span class="text-sm font-semibold text-white">JM</span>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-white">Jamie Mitchell</p>
-              <p class="text-sm text-white/50">Founder, Riverview Co.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-6">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">2,500+</p>
-            <p class="text-xs text-white/40 mt-0.5">Businesses</p>
-          </div>
-          <div class="w-px h-8 bg-white/10" />
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">$12M+</p>
-            <p class="text-xs text-white/40 mt-0.5">Invoices processed</p>
-          </div>
-          <div class="w-px h-8 bg-white/10" />
-          <div class="text-center">
-            <p class="text-2xl font-bold text-white">99.9%</p>
-            <p class="text-xs text-white/40 mt-0.5">Uptime</p>
-          </div>
+        <div class="max-w-md">
+          <p class="text-2xl font-semibold text-white/90 leading-relaxed">
+            One platform for invoices, inventory, orders, and growth.
+          </p>
         </div>
       </div>
     </div>
