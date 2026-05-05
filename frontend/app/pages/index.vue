@@ -833,7 +833,7 @@ const plans = [
             "Up to 250 products & customers",
             "Up to 250 orders",
             "Payments & inventory (unlimited)",
-            "Email support",
+            "Email support (support@easy-rp.com)",
         ],
     },
     {
@@ -846,7 +846,7 @@ const plans = [
         features: [
             "Everything in Starter — unlimited",
             "Reports & analytics",
-            "Priority support",
+            "Priority support via support@easy-rp.com",
         ],
     },
 ];
