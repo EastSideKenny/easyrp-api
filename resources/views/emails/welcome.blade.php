@@ -14,7 +14,7 @@ Here's what you can do next:
 Go to Dashboard
 @endcomponent
 
-If you have any questions or need support, simply reply to this email — we're happy to help.
+If you have any questions or need support, please contact support@easy-rp.com.
 
 Welcome aboard!
 

@@ -24,7 +24,7 @@ Accept Offer
 Decline Offer
 @endcomponent
 
-If you have any questions or would like to discuss modifications, simply reply to this email.
+If you have any questions or would like to discuss modifications, please contact support@easy-rp.com.
 
 We look forward to working with you!
 

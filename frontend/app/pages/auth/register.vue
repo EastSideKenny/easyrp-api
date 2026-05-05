@@ -232,7 +232,8 @@
           </p>
           <p>
             We may suspend accounts for abuse, fraud, or serious violations.
-            You can request account closure and data export through support.
+            You can request account closure and data export at
+            support@easy-rp.com.
           </p>
           <p class="text-text">
             By continuing, you confirm that you have the authority to use this
@@ -283,8 +284,9 @@
             where applicable.
           </p>
           <p>
-            For privacy requests, contact support and include your account email
-            so we can verify ownership and respond within GDPR timelines.
+            For privacy requests, contact support@easy-rp.com and include your
+            account email so we can verify ownership and respond within GDPR
+            timelines.
           </p>
         </div>
       </div>

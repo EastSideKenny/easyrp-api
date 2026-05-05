@@ -21,7 +21,7 @@ Thank you for your order! Here's a summary of **{{ $order->order_number }}**:
 | **Total** | **{{ number_format($order->total, 2) }} {{ $order->currency }}** |
 @endcomponent
 
-We'll keep you updated on the progress of your order. If you have any questions, simply reply to this email.
+We'll keep you updated on the progress of your order. If you have any questions, please contact support@easy-rp.com.
 
 Thank you for your business!
 

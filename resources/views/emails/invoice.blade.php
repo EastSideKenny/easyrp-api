@@ -18,7 +18,7 @@ Please find your invoice attached to this email.
 Please process the payment before the due date. If you've already paid, kindly disregard this notice.
 @endif
 
-If you have any questions regarding this invoice, please don't hesitate to reply to this email.
+If you have any questions regarding this invoice, please contact support@easy-rp.com.
 
 Thank you for your business!
 
