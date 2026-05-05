@@ -39,8 +39,6 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-easyrp}
       POSTGRES_USER: ${DB_USERNAME:-easyrp}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -76,9 +74,6 @@ services:
     image: axllent/mailpit
     container_name: easyrp_mailpit
     restart: unless-stopped
-    ports:
-      - "8025:8025"   # Web UI
-      - "2525:1025"   # SMTP
     networks:
       - easyrp
 
