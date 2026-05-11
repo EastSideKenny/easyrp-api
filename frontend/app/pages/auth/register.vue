@@ -224,7 +224,7 @@
         <div class="space-y-4 text-sm text-text-secondary leading-relaxed">
           <p>
             EasyRP provides business software for invoicing, orders, inventory,
-            and storefront management. By creating an account, you agree to use
+            and billing management. By creating an account, you agree to use
             the service lawfully and protect your login credentials.
           </p>
           <p>

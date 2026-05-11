@@ -87,42 +87,6 @@
                 </NuxtLink>
             </template>
 
-            <template v-if="storeNav.length">
-                <p
-                    class="px-3 mb-1.5 mt-5 text-[10px] font-semibold text-text-muted uppercase tracking-widest"
-                >
-                    Store
-                </p>
-                <NuxtLink
-                    v-for="item in storeNav"
-                    :key="item.to"
-                    :to="item.to"
-                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150"
-                    :class="
-                        isActive(item.to)
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-text-secondary hover:bg-surface-alt hover:text-text'
-                    "
-                    @click="$emit('close')"
-                >
-                    <component
-                        :is="item.icon"
-                        class="w-4 h-4 shrink-0"
-                        :class="
-                            isActive(item.to)
-                                ? 'text-primary'
-                                : 'text-text-muted'
-                        "
-                    />
-                    <span class="flex-1">{{ item.label }}</span>
-                    <span
-                        v-if="item.badge"
-                        class="text-[10px] font-semibold bg-secondary/10 text-secondary px-2 py-0.5 rounded-md"
-                        >{{ item.badge }}</span
-                    >
-                </NuxtLink>
-            </template>
-
             <template v-if="insightsNav.length">
                 <p
                     class="px-3 mb-1.5 mt-5 text-[10px] font-semibold text-text-muted uppercase tracking-widest"
@@ -243,12 +207,9 @@ import {
     CreditCard,
     ClipboardList,
     SlidersHorizontal,
-    ShoppingCart,
-    Store,
     TrendingUp,
     BarChart2,
     Tag,
-    Settings,
     Zap,
     LogOut,
     Palette,
@@ -277,7 +238,12 @@ const userInitial = computed(() => {
 });
 
 function isActive(to: string): boolean {
-    if (to === "/dashboard" || to === "/inventory" || to === "/settings")
+    if (
+        to === "/dashboard" ||
+        to === "/inventory" ||
+        to === "/settings" ||
+        to === "/reports"
+    )
         return route.path === to;
     return route.path.startsWith(to);
 }
@@ -324,18 +290,6 @@ const inventoryNav = computed<NavItem[]>(() => {
     ];
 });
 
-const storeNav = computed<NavItem[]>(() => {
-    const items: NavItem[] = [];
-    if (hasModule("storefront"))
-        items.push({
-            label: "Storefront",
-            icon: Store,
-            to: "/store",
-            badge: "Public",
-        });
-    return items;
-});
-
 const insightsNav = computed<NavItem[]>(() => {
     if (!hasModule("reports")) return [];
     return [
@@ -348,13 +302,6 @@ const insightsNav = computed<NavItem[]>(() => {
 
 const settingsNav = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
-
-    if (hasModule("storefront"))
-        items.push({
-            label: "Webshop",
-            icon: Settings,
-            to: "/settings/webshop",
-        });
 
     const role = user.value?.role;
     if (role === "owner" || role === "admin") {
