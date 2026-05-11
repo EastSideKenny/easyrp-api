@@ -1,6 +1,6 @@
 <template>
     <aside
-        class="max-w-3xl mx-auto px-6 py-12 border-y border-border bg-surface"
+        class="max-w-3xl mx-auto px-6 py-12 border-y border-border/70 bg-white/35 backdrop-blur-xs"
         aria-labelledby="related-pages-heading"
     >
         <h2
@@ -13,7 +13,7 @@
             <li v-for="page in links" :key="page.path">
                 <NuxtLink
                     :to="page.path"
-                    class="group block rounded-xl border border-border bg-surface-alt px-4 py-3 hover:border-primary/30 hover:shadow-card transition-all"
+                    class="group block rounded-xl marketing-card-neo px-4 py-3 hover:border-primary/30 hover:shadow-card transition-all"
                 >
                     <span
                         class="text-sm font-medium text-text group-hover:text-primary"

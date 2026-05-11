@@ -1,6 +1,9 @@
 <template>
   <NuxtLayout name="auth">
     <div class="space-y-6">
+      <div class="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/8 px-3 py-1 text-xs font-semibold text-info">
+        Account recovery
+      </div>
       <!-- Header -->
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-text">
@@ -80,7 +83,7 @@
       </Transition>
 
       <!-- Form -->
-      <form v-if="!sent" class="space-y-4" @submit.prevent="handleResetRequest">
+      <form v-if="!sent" class="space-y-4 rounded-2xl marketing-card-neo p-4 sm:p-5" @submit.prevent="handleResetRequest">
         <UiAppFormField label="Email address" id="email">
           <input
             id="email"
@@ -104,7 +107,7 @@
       </form>
 
       <!-- Resend option (shown after success) -->
-      <div v-if="sent" class="space-y-4">
+      <div v-if="sent" class="space-y-4 rounded-2xl marketing-card-neo p-4 sm:p-5">
         <UiAppButton
           variant="outline"
           :disabled="resendCooldown > 0"
@@ -141,6 +144,10 @@
           Back to sign in
         </NuxtLink>
       </div>
+
+      <p class="text-center text-xs text-text-muted">
+        Still stuck? Contact support@easy-rp.com
+      </p>
     </div>
   </NuxtLayout>
 </template>

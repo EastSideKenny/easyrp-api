@@ -1,6 +1,9 @@
 <template>
   <NuxtLayout name="auth">
     <div class="space-y-6">
+      <div class="inline-flex items-center gap-2 rounded-full border border-warning/20 bg-warning/8 px-3 py-1 text-xs font-semibold text-warning">
+        Password security update
+      </div>
       <!-- Header -->
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-text">
@@ -42,7 +45,7 @@
       </Transition>
 
       <!-- Form -->
-      <form class="space-y-4" @submit.prevent="handleReset">
+      <form class="space-y-4 rounded-2xl marketing-card-neo p-4 sm:p-5" @submit.prevent="handleReset">
         <UiAppFormField
           label="New password"
           id="password"
@@ -150,6 +153,10 @@
           Back to sign in
         </NuxtLink>
       </div>
+
+      <p class="text-center text-xs text-text-muted">
+        Need a new reset link? Go back and request another email.
+      </p>
     </div>
   </NuxtLayout>
 </template>
