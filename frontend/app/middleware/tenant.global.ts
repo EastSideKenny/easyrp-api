@@ -17,6 +17,17 @@ const PUBLIC_ROUTES = [
 /** SEO landing guides + home — readable without auth (same list as sitemap indexables). */
 const MARKETING_PUBLIC_PATHS = new Set<string>(MARKETING_INDEXABLE_PATHS)
 
+function normalizeBaseDomain(input: string): string {
+    return String(input ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '')
+        .replace(/:\d+$/, '')
+        .replace(/^\./, '')
+        .replace(/^www\./, '')
+}
+
 /**
  * Check if a route path matches a public route.
  * Matches exact paths and also /store routes and /offers/{token}/respond.
@@ -37,6 +48,19 @@ function isPublicRoute(path: string): boolean {
  * 3. Redirects to /onboarding on root-domain app pages.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
+    // ── Canonical host redirect (www -> apex) ──
+    // Prevent "www" from being treated as a tenant and keep auth on one host.
+    const config = useRuntimeConfig()
+    const baseDomain = normalizeBaseDomain(String(config.public.appDomain ?? ''))
+    const { protocol, hostname, port } = useRequestURL()
+    if (baseDomain && hostname.toLowerCase() === `www.${baseDomain}`) {
+        const portSuffix = port ? `:${port}` : ''
+        return navigateTo(`${protocol}//${baseDomain}${portSuffix}${to.fullPath}`, {
+            external: true,
+            redirectCode: 301,
+        })
+    }
+
     // Skip the tenant error page itself to avoid redirect loops
     if (to.path === '/tenant-error') return
 
