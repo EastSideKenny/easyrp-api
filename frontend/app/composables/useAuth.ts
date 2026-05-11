@@ -20,7 +20,12 @@ export function useAuth() {
     const user = useState<User | null>('auth.user', () => null)
     const config = useRuntimeConfig()
     const baseUrl = config.public.apiBaseUrl as string
-    const appDomain = String(config.public.appDomain ?? '').split(':')[0].replace(/^\./, '')
+    const appDomain = String(config.public.appDomain ?? '')
+        .trim()
+        .toLowerCase()
+        .split(':')[0]
+        .replace(/^\./, '')
+        .replace(/^www\./, '')
     const cookieDomain = appDomain && appDomain !== 'localhost' && !appDomain.endsWith('.localhost')
         ? `.${appDomain}`
         : undefined

@@ -9,7 +9,10 @@ import type { User } from '~/types'
  */
 export function useWorkspaces() {
     const config = useRuntimeConfig()
-    const appDomain = (config.public.appDomain as string || '').trim()
+    const appDomain = String(config.public.appDomain ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/^www\./, '')
 
     /**
      * Build the full URL to a tenant's subdomain.
