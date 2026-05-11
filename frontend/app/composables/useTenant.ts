@@ -16,7 +16,8 @@ export function useTenant() {
     const tenantError = useState<string | null>('tenant-error', () => null)
 
     const config = useRuntimeConfig()
-    const appDomain = config.public.appDomain as string // e.g. "easyrp.com" or "localhost"
+    const rawAppDomain = String(config.public.appDomain ?? '').trim().toLowerCase()
+    const appDomain = rawAppDomain.replace(/^www\./, '') // e.g. "easy-rp.com" or "localhost"
 
     /**
      * Extract the tenant subdomain from the current hostname.
@@ -49,6 +50,8 @@ export function useTenant() {
             const sub = host.slice(0, -suffix.length)
             // Ensure it's a single-level subdomain (no dots)
             if (sub && !sub.includes('.')) {
+                // Treat "www" as a root-domain alias, not a tenant slug.
+                if (sub === 'www') return null
                 return sub
             }
         }
