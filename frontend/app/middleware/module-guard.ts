@@ -16,8 +16,13 @@ export default defineNuxtRouteMiddleware((to) => {
 
     const { tenant } = useTenant()
     const modules = tenant.value?.modules
+    const { hasFeature } = useSubscription()
 
-    // No restriction configured → allow
+    // Subscription feature entitlement (plan_features) is the source of truth.
+    // If present, allow by feature regardless of stale tenant.modules.
+    if (hasFeature(requiredModule)) return
+
+    // No module restriction configured on tenant → allow (legacy fallback).
     if (!modules || modules.length === 0) return
 
     if (!modules.includes(requiredModule)) {

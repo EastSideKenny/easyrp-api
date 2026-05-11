@@ -17,6 +17,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SetupProgressController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StorefrontController;
@@ -160,6 +161,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::middleware('plan.feature:storefront')->group(function () {
                 Route::get('/webshop-settings', [WebshopSettingController::class, 'show']);
                 Route::patch('/webshop-settings', [WebshopSettingController::class, 'update']);
+            });
+
+            Route::middleware('plan.feature:reports')->prefix('reports')->group(function () {
+                Route::get('/revenue', [ReportsController::class, 'revenue']);
+                Route::get('/sales-by-product', [ReportsController::class, 'salesByProduct']);
+                Route::get('/stock-value', [ReportsController::class, 'stockValue']);
             });
 
             Route::get('/setup-progress', [SetupProgressController::class, 'index']);

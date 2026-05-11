@@ -296,9 +296,20 @@ export function useSubscription() {
      */
     function hasFeature(feature: string): boolean {
         const raw = subscription.value?.usage
-        if (!raw) return true
-        if (Array.isArray(raw)) return raw.some((u) => u.feature === feature)
-        return feature in (raw as Record<string, unknown>)
+        if (raw) {
+            if (Array.isArray(raw) && raw.some((u) => u.feature === feature)) return true
+            if (!Array.isArray(raw) && feature in (raw as Record<string, unknown>)) return true
+        }
+
+        // Some non-countable features (e.g. reports) might not appear in usage snapshots.
+        // Fall back to the current plan's declared feature list.
+        const planFeatures = subscription.value?.plan?.features
+        if (Array.isArray(planFeatures)) {
+            return planFeatures.some((f: any) => String(f?.code ?? '') === feature)
+        }
+
+        // Fail-open if subscription data is not loaded yet.
+        return !subscription.value
     }
 
     /**

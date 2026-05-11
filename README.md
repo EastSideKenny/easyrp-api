@@ -76,6 +76,20 @@ docker-compose exec app php artisan migrate
 
 The API will be available at `http://localhost:8000`.
 
+## Server deployment helper
+
+Use the deploy helper script on your server:
+
+```bash
+./scripts/deploy.sh
+```
+
+What it does:
+- Pulls latest changes from `origin/develop`
+- Rebuilds/restarts Docker services (`docker compose up -d --build`)
+- Prompts `y/N` to run migrations
+- Clears and warms Laravel caches
+
 ## API Endpoints
 
 ### Authentication
