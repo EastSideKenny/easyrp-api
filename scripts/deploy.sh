@@ -6,7 +6,7 @@ BRANCH="${BRANCH:-develop}"
 APP_SERVICE="${APP_SERVICE:-app}"
 FRONTEND_DIR="${FRONTEND_DIR:-frontend}"
 DEPLOY_FRONTEND="${DEPLOY_FRONTEND:-1}"
-FRONTEND_RESTART_CMD="${FRONTEND_RESTART_CMD:-}"
+FRONTEND_RESTART_CMD="${FRONTEND_RESTART_CMD:-pm2 restart easyrp-frontend}"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "==> EasyRP deploy started"
@@ -32,6 +32,9 @@ git pull --ff-only origin "${BRANCH}"
 
 echo "==> Building and restarting Docker services"
 docker compose up -d --build
+
+echo "==> Reloading nginx upstream mapping"
+docker compose restart nginx
 
 if [[ "${DEPLOY_FRONTEND}" == "1" ]]; then
   FRONTEND_PATH="${PROJECT_ROOT}/${FRONTEND_DIR}"
