@@ -1,6 +1,9 @@
 <template>
   <NuxtLayout name="auth">
     <div class="space-y-6">
+      <div class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
+        Workspace setup wizard
+      </div>
       <!-- Progress indicator -->
       <div class="flex items-center gap-2">
         <div
@@ -21,7 +24,7 @@
         leave-to-class="opacity-0 -translate-x-4"
         mode="out-in"
       >
-        <div v-if="step === 1" key="step-1" class="space-y-6">
+        <div v-if="step === 1" key="step-1" class="space-y-6 rounded-2xl marketing-card-neo p-4 sm:p-5">
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-text">
               Set up your workspace
@@ -136,7 +139,7 @@
         </div>
 
         <!-- Step 2: Team size & role -->
-        <div v-else-if="step === 2" key="step-2" class="space-y-6">
+        <div v-else-if="step === 2" key="step-2" class="space-y-6 rounded-2xl marketing-card-neo p-4 sm:p-5">
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-text">
               About your team
@@ -200,7 +203,7 @@
         </div>
 
         <!-- Step 3: Plan selection -->
-        <div v-else-if="step === 3" key="step-3" class="space-y-6">
+        <div v-else-if="step === 3" key="step-3" class="space-y-6 rounded-2xl marketing-card-neo p-4 sm:p-5">
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-text">
               Choose your plan

@@ -1,6 +1,9 @@
 <template>
   <NuxtLayout name="auth">
     <div class="space-y-6">
+      <div class="inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/8 px-3 py-1 text-xs font-semibold text-success">
+        Free 14-day trial
+      </div>
       <!-- Header -->
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-text">
@@ -42,7 +45,7 @@
       </Transition>
 
       <!-- Form -->
-      <form class="space-y-4" @submit.prevent="handleRegister">
+      <form class="space-y-4 rounded-2xl marketing-card-neo p-4 sm:p-5" @submit.prevent="handleRegister">
         <UiAppFormField label="Full name" id="name">
           <input
             id="name"
@@ -191,6 +194,10 @@
         >
           Sign in
         </NuxtLink>
+      </p>
+
+      <p class="text-center text-xs text-text-muted">
+        Questions before signing up? Contact support@easy-rp.com
       </p>
     </div>
 

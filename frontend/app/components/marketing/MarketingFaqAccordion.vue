@@ -10,7 +10,7 @@
             <div
                 v-for="(faq, i) in faqs"
                 :key="i"
-                class="bg-surface border border-border rounded-xl overflow-hidden"
+                class="marketing-glass rounded-xl overflow-hidden"
             >
                 <button
                     type="button"
