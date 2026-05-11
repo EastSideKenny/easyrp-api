@@ -4,6 +4,9 @@ set -euo pipefail
 
 BRANCH="${BRANCH:-develop}"
 APP_SERVICE="${APP_SERVICE:-app}"
+FRONTEND_DIR="${FRONTEND_DIR:-frontend}"
+DEPLOY_FRONTEND="${DEPLOY_FRONTEND:-1}"
+FRONTEND_RESTART_CMD="${FRONTEND_RESTART_CMD:-}"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "==> EasyRP deploy started"
@@ -29,6 +32,28 @@ git pull --ff-only origin "${BRANCH}"
 
 echo "==> Building and restarting Docker services"
 docker compose up -d --build
+
+if [[ "${DEPLOY_FRONTEND}" == "1" ]]; then
+  FRONTEND_PATH="${PROJECT_ROOT}/${FRONTEND_DIR}"
+  if [[ -d "${FRONTEND_PATH}" ]]; then
+    echo "==> Installing frontend dependencies"
+    (cd "${FRONTEND_PATH}" && bun install)
+
+    echo "==> Building frontend"
+    (cd "${FRONTEND_PATH}" && bun run build)
+
+    if [[ -n "${FRONTEND_RESTART_CMD}" ]]; then
+      echo "==> Restarting frontend process"
+      bash -lc "${FRONTEND_RESTART_CMD}"
+    else
+      echo "==> FRONTEND_RESTART_CMD not set, skipping frontend process restart"
+    fi
+  else
+    echo "==> Frontend directory '${FRONTEND_PATH}' not found, skipping frontend deploy"
+  fi
+else
+  echo "==> Skipping frontend deploy (DEPLOY_FRONTEND=${DEPLOY_FRONTEND})"
+fi
 
 read -r -p "Run database migrations now? (y/N): " RUN_MIGRATIONS
 if [[ "${RUN_MIGRATIONS}" =~ ^[Yy]$ ]]; then
