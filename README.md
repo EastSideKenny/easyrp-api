@@ -87,8 +87,14 @@ Use the deploy helper script on your server:
 What it does:
 - Pulls latest changes from `origin/develop`
 - Rebuilds/restarts Docker services (`docker compose up -d --build`)
+- Builds frontend (`frontend`: `bun install` + `bun run build`)
 - Prompts `y/N` to run migrations
 - Clears and warms Laravel caches
+
+Optional env vars:
+- `DEPLOY_FRONTEND=0` to skip frontend build
+- `FRONTEND_DIR=frontend` to change frontend folder
+- `FRONTEND_RESTART_CMD="pm2 restart easyrp-web"` to restart frontend runtime
 
 ## API Endpoints
 
