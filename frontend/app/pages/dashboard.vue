@@ -145,6 +145,50 @@
       </UiAppCard>
     </div>
 
+    <!-- Reports Preview (Pro) -->
+    <div v-if="hasReportsModule">
+      <UiAppSectionHeader title="Reports Preview">
+        <NuxtLink
+          to="/reports/revenue"
+          class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+        >
+          Open Reports <ArrowRight class="w-3.5 h-3.5" />
+        </NuxtLink>
+      </UiAppSectionHeader>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+        <UiAppStatCard
+          label="Revenue (30d)"
+          :value="formatCurrency(reportsPreview.revenue)"
+          :change="reportsPreview.marginLabel"
+          :trending="reportsPreview.margin >= 0"
+          subtitle="from reports module"
+        />
+        <UiAppStatCard
+          label="Profit (30d)"
+          :value="formatCurrency(reportsPreview.profit)"
+          subtitle="estimated from sold items"
+        />
+        <UiAppCard class="p-4!">
+          <p class="text-xs uppercase tracking-wide text-text-muted font-semibold">
+            Top Product
+          </p>
+          <p class="mt-2 text-sm font-semibold text-text">
+            {{ reportsPreview.topProductName }}
+          </p>
+          <p class="text-xs text-text-muted mt-1">
+            {{ reportsPreview.topProductUnits }} units sold
+          </p>
+          <NuxtLink
+            to="/reports/sales"
+            class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-dark mt-3"
+          >
+            View sales breakdown
+          </NuxtLink>
+        </UiAppCard>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
     <div>
       <UiAppSectionHeader title="Quick Actions" />
@@ -234,6 +278,8 @@ const { user } = useAuth();
 const api = useApi();
 const { tenant } = useTenant();
 const { formatCurrency } = useCurrency();
+const { fetchRevenueReport, fetchSalesByProduct } = useReports();
+const { hasFeature } = useSubscription();
 
 // ─── Dashboard stats ───
 
@@ -288,8 +334,28 @@ const allQuickActions = [
 
 const quickActions = computed(() => {
   const modules = tenant.value?.modules;
-  if (!modules || modules.length === 0) return allQuickActions;
-  return allQuickActions.filter((a) => !a.module || modules.includes(a.module));
+  return allQuickActions.filter((a) => {
+    if (!a.module) return true;
+    if (hasFeature(a.module)) return true;
+    if (!modules || modules.length === 0) return true;
+    return modules.includes(a.module);
+  });
+});
+
+const hasReportsModule = computed(() => {
+  if (hasFeature("reports")) return true;
+  const modules = tenant.value?.modules;
+  if (!modules || modules.length === 0) return true;
+  return modules.includes("reports");
+});
+
+const reportsPreview = ref({
+  revenue: 0,
+  profit: 0,
+  margin: 0,
+  marginLabel: "0% margin",
+  topProductName: "—",
+  topProductUnits: 0,
 });
 
 // ─── Greeting based on time of day ───
@@ -346,7 +412,37 @@ async function loadDashboard() {
   }
 }
 
+async function loadReportsPreview() {
+  if (!hasReportsModule.value) return;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+
+    const [revenueRows, salesRows] = await Promise.all([
+      fetchRevenueReport({ from, to: today, group_by: "month" }),
+      fetchSalesByProduct({ from, to: today, limit: 1 }),
+    ]);
+
+    const revenue = revenueRows.reduce((s, r) => s + r.revenue, 0);
+    const profit = revenueRows.reduce((s, r) => s + r.profit, 0);
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    const top = salesRows[0];
+
+    reportsPreview.value = {
+      revenue,
+      profit,
+      margin,
+      marginLabel: `${Math.round(margin)}% margin`,
+      topProductName: top?.product_name ?? "No sales yet",
+      topProductUnits: top?.units_sold ?? 0,
+    };
+  } catch (e) {
+    console.error("[Dashboard] Failed to load reports preview:", e);
+  }
+}
+
 onMounted(() => {
   loadDashboard();
+  loadReportsPreview();
 });
 </script>

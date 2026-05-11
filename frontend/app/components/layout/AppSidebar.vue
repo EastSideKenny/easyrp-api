@@ -269,6 +269,7 @@ defineEmits<{
 const route = useRoute();
 const { logout, user } = useAuth();
 const { tenant } = useTenant();
+const { hasFeature } = useSubscription();
 
 const userInitial = computed(() => {
     const name = props.userName;
@@ -288,6 +289,7 @@ async function handleLogout() {
 
 /** Returns true if the tenant has the given module enabled (or if modules aren't set). */
 function hasModule(module: string): boolean {
+    if (hasFeature(module)) return true;
     const modules = tenant.value?.modules;
     if (!modules || modules.length === 0) return true;
     return modules.includes(module);
@@ -337,6 +339,7 @@ const storeNav = computed<NavItem[]>(() => {
 const insightsNav = computed<NavItem[]>(() => {
     if (!hasModule("reports")) return [];
     return [
+        { label: "Overview", icon: TrendingUp, to: "/reports" },
         { label: "Revenue", icon: TrendingUp, to: "/reports/revenue" },
         { label: "Sales by Product", icon: BarChart2, to: "/reports/sales" },
         { label: "Stock Value", icon: Tag, to: "/reports/stock-value" },
