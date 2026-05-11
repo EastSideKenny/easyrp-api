@@ -440,7 +440,7 @@ async function handleCreateWorkspace() {
     }
 
     const baseModules = ["invoices", "products", "customers"];
-    const proModules = [...baseModules, "storefront", "reports"];
+    const proModules = [...baseModules, "reports"];
     const modules = plan.slug === "pro" ? proModules : baseModules;
 
     const response = await authFetch<

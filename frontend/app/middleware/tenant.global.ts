@@ -30,12 +30,11 @@ function normalizeBaseDomain(input: string): string {
 
 /**
  * Check if a route path matches a public route.
- * Matches exact paths and also /store routes and /offers/{token}/respond.
+ * Matches exact paths and /offers/{token}/respond.
  */
 function isPublicRoute(path: string): boolean {
     if (PUBLIC_ROUTES.includes(path)) return true
     if (MARKETING_PUBLIC_PATHS.has(path)) return true
-    if (path.startsWith('/store')) return true
     if (/^\/offers\/[^/]+\/respond$/.test(path)) return true
     return false
 }
